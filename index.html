@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>NutriLens — AI Nutritionist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --ink:#0f1116;--ink2:#3a3f4d;--ink3:#7a8190;
+  --paper:#f5f4f0;--card:#ffffff;--card2:#fafaf8;--border:#e4e2dc;--border2:#ccc9c0;
+  --g1:#0d6e3f;--g2:#15a05c;--g3:#1dbe6e;--g-bg:#ebf7f1;--g-soft:#d4f0e2;
+  --r1:#b53030;--r-bg:#fdf0f0;
+  --a1:#9c5800;--a-bg:#fff7eb;
+  --blue:#2a6be0;--blue-bg:#eef3fd;
+  --r:14px;--r-sm:9px;--r-xs:5px;
+  --sh:0 1px 2px rgba(0,0,0,.05),0 4px 18px rgba(0,0,0,.07);
+  --sh-lg:0 8px 40px rgba(0,0,0,.12);
+}
+html,body{height:100%;font-family:'Syne',sans-serif;background:#e8e6e0;color:var(--ink);font-size:15px;line-height:1.5}
+
+/* ── APP SHELL ── */
+#app{max-width:420px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--paper);position:relative;box-shadow:0 0 60px rgba(0,0,0,.15)}
+
+/* ── HEADER ── */
+.hdr{background:var(--ink);padding:18px 20px 0;position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;top:-40px;right:-20px;width:160px;height:160px;border-radius:50%;background:linear-gradient(135deg,#0d6e3f22,#1dbe6e11);pointer-events:none}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.hdr-logo{font-family:'Playfair Display',serif;font-size:26px;color:#fff;letter-spacing:-.3px;display:flex;align-items:baseline;gap:2px}
+.hdr-logo em{color:var(--g3);font-style:italic}
+.hdr-pill{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--g3);background:rgba(29,190,110,.12);border:1px solid rgba(29,190,110,.25);border-radius:20px;padding:3px 9px}
+
+.key-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);padding:13px 14px;margin-bottom:0}
+.key-box-title{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--g3);margin-bottom:9px}
+.key-row{display:flex;gap:7px;margin-bottom:8px}
+.key-inp{flex:1;border:1px solid rgba(255,255,255,.12);border-radius:var(--r-sm);padding:8px 12px;font-family:'Syne',sans-serif;font-size:12.5px;background:rgba(255,255,255,.08);color:#fff;outline:none;transition:border-color .2s}
+.key-inp:focus{border-color:var(--g3)}
+.key-inp::placeholder{color:rgba(255,255,255,.3)}
+.key-save{padding:8px 14px;background:var(--g3);color:var(--ink);border:none;border-radius:var(--r-sm);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
+.key-save:hover{background:#22d87e;transform:translateY(-1px)}
+.key-hint{font-size:11px;color:rgba(255,255,255,.35);line-height:1.5}
+.key-hint a{color:var(--g3);text-decoration:none;font-weight:600}
+
+.key-status{display:flex;align-items:center;gap:7px;padding:10px 0 2px}
+.kdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;transition:background .3s}
+.kdot.ok{background:var(--g3)}.kdot.er{background:#e05a5a}.kdot.ck{background:#f5c842;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.kstxt{font-size:11.5px;color:rgba(255,255,255,.45);flex:1}
+
+.model-sel{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
+.model-sel-lbl{font-size:10px;font-weight:700;color:var(--g3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px}
+.mbtn{font-size:10.5px;padding:3px 9px;border-radius:20px;border:1px solid rgba(255,255,255,.15);background:transparent;cursor:pointer;font-family:'Syne',sans-serif;color:rgba(255,255,255,.45);transition:all .15s}
+.mbtn.on{background:rgba(29,190,110,.18);color:var(--g3);border-color:rgba(29,190,110,.4);font-weight:700}
+#model-btns{display:flex;gap:5px;flex-wrap:wrap}
+
+/* ── NAV ── */
+.nav{display:flex;border-top:1px solid var(--border);background:var(--card);position:sticky;bottom:0;z-index:20;box-shadow:0 -2px 20px rgba(0,0,0,.08)}
+.navbtn{flex:1;padding:11px 4px 9px;border:none;background:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:10.5px;font-weight:600;color:var(--ink3);display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s;position:relative;letter-spacing:.02em}
+.navbtn.on{color:var(--g1)}
+.navbtn.on::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:28px;height:2.5px;border-radius:2px;background:var(--g3);box-shadow:0 0 8px rgba(29,190,110,.5)}
+.navicon{font-size:19px;line-height:1}
+
+/* ── SCREENS ── */
+.screen{display:none;flex:1;padding:16px 18px 80px;overflow-y:auto;animation:fadein .2s ease}
+.screen.on{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── CAPTURE AREA ── */
+.capture{background:var(--ink);border-radius:var(--r);overflow:hidden;margin-bottom:11px;position:relative;min-height:190px;display:flex;align-items:center;justify-content:center}
+.capture::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 60%,rgba(0,0,0,.5));pointer-events:none;border-radius:var(--r)}
+#vid{width:100%;max-height:250px;object-fit:cover;display:none}
+#cvs{display:none}
+#prev{width:100%;max-height:250px;object-fit:cover;display:none;border-radius:var(--r)}
+.capture-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:30px;text-align:center}
+.capture-ph-icon{font-size:42px;line-height:1;filter:drop-shadow(0 4px 12px rgba(29,190,110,.3))}
+.capture-ph-text{font-size:14px;color:rgba(255,255,255,.55);line-height:1.4}
+.capture-ph-sub{font-size:11.5px;color:rgba(255,255,255,.28)}
+.shutter-wrap{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:14px;z-index:5}
+.shutter{width:58px;height:58px;border-radius:50%;background:white;border:4px solid rgba(255,255,255,.3);cursor:pointer;box-shadow:0 2px 20px rgba(0,0,0,.4);transition:transform .1s,box-shadow .1s;position:relative}
+.shutter:active{transform:scale(.86)}
+.shutter::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:white;display:block}
+.flipbtn{width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);cursor:pointer;color:white;font-size:17px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.flipbtn:hover{background:rgba(0,0,0,.7)}
+input[type=file]{display:none}
+
+/* ── CONTROLS ── */
+.ctrl-bar{display:flex;gap:7px;margin-bottom:11px}
+.cbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--card);cursor:pointer;font-family:'Syne',sans-serif;font-size:12.5px;font-weight:600;color:var(--ink2);transition:all .15s}
+.cbtn:hover{background:var(--card2);border-color:var(--border2)}
+.cbtn.primary{background:var(--ink);color:white;border-color:var(--ink)}
+.cbtn.primary:hover{background:#1c2230}
+.cbtn:disabled{opacity:.35;cursor:default}
+
+.analyze-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--g1),var(--g2));color:white;border:none;border-radius:var(--r-sm);font-family:'Playfair Display',serif;font-size:17px;font-style:italic;cursor:pointer;display:none;margin-bottom:11px;transition:all .2s;letter-spacing:.01em;box-shadow:0 4px 20px rgba(13,110,63,.25)}
+.analyze-btn:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(13,110,63,.35)}
+.analyze-btn:active{transform:translateY(0)}
+
+.scan-tips{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap}
+.scan-tip{font-size:10.5px;padding:3px 9px;border-radius:20px;background:var(--g-bg);border:1px solid rgba(13,110,63,.15);color:var(--g1);font-weight:500}
+
+.extracted{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 11px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink3);max-height:75px;overflow-y:auto;margin-bottom:11px;display:none;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+
+/* ── LOADING ── */
+.loading{text-align:center;padding:36px 20px}
+.loader{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:14px}
+.loader-dot{width:7px;height:7px;border-radius:50%;background:var(--g3);animation:bounce .9s ease-in-out infinite}
+.loader-dot:nth-child(2){animation-delay:.18s}.loader-dot:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,100%{transform:translateY(0);opacity:.3}50%{transform:translateY(-10px);opacity:1}}
+.loading-txt{font-family:'Playfair Display',serif;font-size:19px;color:var(--ink);margin-bottom:5px}
+.loading-sub{font-size:12.5px;color:var(--ink3)}
+.steps{display:flex;flex-direction:column;gap:7px;max-width:220px;margin:18px auto 0;text-align:left}
+.step{font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:8px;transition:color .3s}
+.step.dn{color:var(--g1)}
+.step-dot{width:5px;height:5px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .3s}
+.step.dn .step-dot{background:var(--g3);box-shadow:0 0 6px rgba(29,190,110,.5)}
+
+/* ── RESULT CARDS ── */
+.rcard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:11px;box-shadow:var(--sh)}
+.rlbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+
+/* Score */
+.score-hero{display:flex;align-items:center;gap:14px}
+.score-ring{position:relative;width:82px;height:82px;flex-shrink:0}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:24px;font-weight:700}
+.score-info h2{font-family:'Playfair Display',serif;font-size:17px;line-height:1.25;margin-bottom:3px}
+.score-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;margin-bottom:5px;letter-spacing:.03em}
+.score-info p{font-size:12.5px;color:var(--ink2);line-height:1.55}
+
+/* Alerts */
+.alert-item{display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border-radius:var(--r-sm);margin-bottom:6px;font-size:12.5px;line-height:1.5}
+.alert-item:last-child{margin-bottom:0}
+.alert-danger{background:var(--r-bg);color:var(--r1);border:1px solid rgba(181,48,48,.15)}
+.alert-warn{background:var(--a-bg);color:var(--a1);border:1px solid rgba(156,88,0,.15)}
+.alert-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+
+/* Nutrients */
+.nutr-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.nutr-cell{background:var(--card2);border-radius:var(--r-sm);padding:9px 11px;border:1px solid var(--border)}
+.nutr-name{font-size:10px;color:var(--ink3);margin-bottom:2px;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.nutr-val{font-family:'Playfair Display',serif;font-size:19px;line-height:1;margin-bottom:3px}
+.nutr-verdict{font-size:10px;font-weight:700;letter-spacing:.02em}
+.v-good{color:var(--g1)}.v-mod{color:var(--a1)}.v-high{color:var(--r1)}
+.nutr-plain{font-size:10.5px;color:var(--ink3);line-height:1.4;margin-top:2px}
+
+/* Ingredients */
+.dd-intro{font-size:12.5px;color:var(--ink2);margin-bottom:11px;line-height:1.55}
+.ingr{border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:7px;overflow:hidden}
+.ingr-hdr{display:flex;align-items:center;gap:9px;padding:11px 13px;cursor:pointer;background:var(--card);transition:background .15s}
+.ingr-hdr:hover{background:var(--card2)}
+.ingr-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.dot-red{background:var(--r1)}.dot-amber{background:var(--a1)}.dot-green{background:var(--g3)}
+.ingr-info{flex:1}
+.ingr-name{font-weight:700;font-size:13px;color:var(--ink)}
+.ingr-sub{font-size:11.5px;color:var(--ink3);margin-top:1px}
+.ingr-tag{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;letter-spacing:.03em}
+.tag-avoid{background:var(--r-bg);color:var(--r1)}.tag-limit{background:var(--a-bg);color:var(--a1)}.tag-ok{background:var(--g-bg);color:var(--g1)}
+.ingr-chev{font-size:11px;color:var(--ink3);transition:transform .25s;margin-left:5px}
+.ingr-chev.op{transform:rotate(180deg)}
+.ingr-body{display:none;padding:11px 13px;background:var(--card2);border-top:1px solid var(--border)}
+.ingr-body.op{display:block}
+.ingr-section{margin-bottom:9px}.ingr-section:last-child{margin-bottom:0}
+.ingr-section-title{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:3px}
+.ingr-section p{font-size:12.5px;color:var(--ink2);line-height:1.6}
+.ingr-who{font-size:11.5px;color:var(--a1);background:var(--a-bg);border-radius:var(--r-xs);padding:7px 9px;border:1px solid rgba(156,88,0,.15);margin-top:7px;line-height:1.5}
+
+/* Insights */
+.insight{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--ink2);line-height:1.55}
+.insight:last-child{border:none}
+.insight-dot{width:5px;height:5px;border-radius:50%;background:var(--g3);flex-shrink:0;margin-top:7px}
+
+/* Did you know */
+.dyk-card{background:linear-gradient(135deg,#f0f4ff,#f4f0ff);border:1px solid #d4d0ef;border-radius:var(--r);padding:15px;margin-bottom:11px}
+.dyk-lbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5060b0;margin-bottom:7px}
+.dyk-card p{font-size:12.5px;color:#2a2a50;line-height:1.65}
+
+/* Verdict */
+.verdict-card{background:linear-gradient(135deg,var(--g-bg),#e8f8f0);border:1px solid rgba(13,110,63,.2);border-radius:var(--r);padding:15px;margin-bottom:11px}
+.verdict-lbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--g1);margin-bottom:7px}
+.verdict-card p{font-size:13.5px;color:#163a28;line-height:1.65}
+
+/* History */
+.hist-empty{text-align:center;padding:44px 20px;color:var(--ink3)}
+.hist-empty-icon{font-size:38px;margin-bottom:10px;opacity:.4}
+.hist-empty p{font-size:13px}
+.hist-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:9px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:11px;box-shadow:var(--sh)}
+.hist-item:hover{transform:translateY(-1px);box-shadow:var(--sh-lg)}
+.hist-thumb{width:50px;height:50px;border-radius:var(--r-sm);object-fit:cover;flex-shrink:0}
+.hist-thumb-ph{width:50px;height:50px;border-radius:var(--r-sm);background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.hist-info{flex:1;min-width:0}
+.hist-name{font-weight:700;font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-date{font-size:10.5px;color:var(--ink3);margin-top:2px}
+.hist-score{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;flex-shrink:0}
+.hist-clear{width:100%;padding:9px;border:1px solid rgba(181,48,48,.25);border-radius:var(--r-sm);background:none;font-family:'Syne',sans-serif;font-size:12.5px;color:var(--r1);cursor:pointer;margin-top:3px;transition:background .15s}
+.hist-clear:hover{background:var(--r-bg)}
+
+/* Compare */
+.cmp-slots{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
+.cmp-slot{border:2px dashed var(--border2);border-radius:var(--r);padding:14px;text-align:center;cursor:pointer;min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:all .2s}
+.cmp-slot:hover{border-color:var(--g3);background:var(--g-bg)}
+.cmp-slot.fl{border-style:solid;border-color:var(--g3);background:var(--g-soft)}
+.cmp-slot-lbl{font-size:11px;color:var(--ink3);font-weight:500}
+.cmp-slot-name{font-size:11.5px;font-weight:700;color:var(--g1);word-break:break-word}
+.cmp-bar-section{margin-bottom:11px}
+.cbl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2);margin-bottom:5px;font-weight:600}
+.cbhint{font-size:10.5px;color:var(--ink3);font-weight:400}
+.cbrw{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.cbl2{font-size:11px;width:12px;color:var(--ink3);font-weight:500}.cbl2.w{color:var(--g1);font-weight:800}
+.ctrack{flex:1;height:8px;background:var(--card2);border-radius:5px;overflow:hidden;border:1px solid var(--border)}
+.cfill{height:100%;border-radius:5px;transition:width .7s cubic-bezier(.34,1.56,.64,1)}
+.fill-a{background:var(--g3)}.fill-b{background:var(--a1)}
+.cval{font-size:11px;color:var(--ink2);min-width:42px;font-family:'JetBrains Mono',monospace}
+
+/* Profile */
+.prof-section{margin-bottom:15px}
+.prof-lbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px}
+.tag-wrap{display:flex;flex-wrap:wrap;gap:5px}
+.ptag{font-size:12px;padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;color:var(--ink2);transition:all .15s}
+.ptag.on{border-width:1.5px}
+.ptag.pa.on{background:var(--r-bg);color:var(--r1);border-color:rgba(181,48,48,.3)}
+.ptag.pg.on{background:var(--g-bg);color:var(--g1);border-color:rgba(13,110,63,.3)}
+.ptag.pc.on{background:var(--a-bg);color:var(--a1);border-color:rgba(156,88,0,.3)}
+.prof-textarea{width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 11px;font-family:'Syne',sans-serif;font-size:12.5px;background:var(--card2);color:var(--ink);resize:vertical;min-height:76px;outline:none;line-height:1.5}
+.prof-textarea:focus{border-color:var(--g3)}
+.prof-textarea::placeholder{color:var(--ink3)}
+.save-prof-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--g1),var(--g2));color:white;border:none;border-radius:var(--r-sm);font-family:'Playfair Display',serif;font-size:17px;font-style:italic;cursor:pointer;margin-top:3px;transition:all .2s;box-shadow:0 4px 18px rgba(13,110,63,.25)}
+.save-prof-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(13,110,63,.35)}
+.saved-toast{text-align:center;font-size:12.5px;color:var(--g1);padding:7px;display:none;font-weight:700;letter-spacing:.02em}
+.reset-btn{width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--r-sm);background:none;font-family:'Syne',sans-serif;font-size:12.5px;color:var(--ink3);cursor:pointer;margin-top:3px;transition:all .15s}
+.reset-btn:hover{background:var(--card2);color:var(--ink2)}
+.err-card{background:var(--r-bg);border:1px solid rgba(181,48,48,.2);border-radius:var(--r);padding:13px 15px;margin-bottom:11px;font-size:12.5px;color:var(--r1);line-height:1.6}
+.err-card strong{display:block;margin-bottom:5px;font-size:13.5px}
+.tip-box{background:var(--card);border:1px solid var(--border);border-radius:var(--r-xs);padding:9px;font-size:11.5px;color:var(--ink3);margin-top:7px}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* section header used in profile + compare */
+.sec-hdr{font-family:'Playfair Display',serif;font-size:20px;font-style:italic;color:var(--ink);margin-bottom:14px}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="hdr-logo">Nutri<em>Lens</em></div>
+      <div class="hdr-pill">AI Nutritionist</div>
+    </div>
+    <div class="key-box">
+      <div class="key-status"><div class="kdot ok" id="kdot"></div><span class="kstxt" id="kstxt">Powered by Claude — ready to scan</span></div>
+    </div>
+  </div>
+
+  <!-- SCAN TAB -->
+  <div id="tab-scan" class="screen on">
+    <div class="capture" id="cap">
+      <div class="capture-ph" id="ph">
+        <div class="capture-ph-icon">🔬</div>
+        <div class="capture-ph-text">Point camera at a nutrition label</div>
+        <div class="capture-ph-sub">or tap Upload below</div>
+      </div>
+      <video id="vid" autoplay playsinline muted></video>
+      <canvas id="cvs"></canvas>
+      <img id="prev" src="" alt="">
+      <div class="shutter-wrap" id="shr" style="display:none">
+        <button class="flipbtn" onclick="flipCam()">🔄</button>
+        <button class="shutter" onclick="snap()"></button>
+      </div>
+    </div>
+    <div class="scan-tips">
+      <div class="scan-tip">📸 Keep label flat</div>
+      <div class="scan-tip">💡 Good lighting</div>
+      <div class="scan-tip">🔤 Show all text</div>
+    </div>
+    <div class="ctrl-bar">
+      <button class="cbtn" onclick="openCam()">📷 Camera</button>
+      <button class="cbtn" onclick="document.getElementById('fi').click()">🖼 Upload</button>
+      <button class="cbtn primary" id="use-btn" style="display:none" onclick="usePic()">✓ Use Photo</button>
+    </div>
+    <input type="file" id="fi" accept="image/*" onchange="onFile(event)">
+    <div class="extracted" id="extracted"></div>
+    <button class="analyze-btn" id="analyze-btn" onclick="doScan()">Analyze Label →</button>
+    <div id="scan-loading" style="display:none">
+      <div class="loading">
+        <div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+        <div class="loading-txt" id="ltxt">Reading your label…</div>
+        <div class="loading-sub">Takes ~15 s on free tier</div>
+        <div class="steps">
+          <div class="step" id="s1"><div class="step-dot"></div>Extracting text from image</div>
+          <div class="step" id="s2"><div class="step-dot"></div>Identifying ingredients</div>
+          <div class="step" id="s3"><div class="step-dot"></div>Nutritionist analysis</div>
+          <div class="step" id="s4"><div class="step-dot"></div>Personalizing for your profile</div>
+        </div>
+      </div>
+    </div>
+    <div id="scan-result"></div>
+  </div>
+
+  <!-- COMPARE TAB -->
+  <div id="tab-compare" class="screen">
+    <div class="sec-hdr">Compare products</div>
+    <div class="cmp-slots">
+      <div class="cmp-slot" id="csa" onclick="document.getElementById('cfa').click()">
+        <span style="font-size:26px">🅰</span><div class="cmp-slot-lbl">Add Product A</div>
+        <input type="file" id="cfa" accept="image/*" style="display:none" onchange="onCmpFile('a',event)">
+      </div>
+      <div class="cmp-slot" id="csb" onclick="document.getElementById('cfb').click()">
+        <span style="font-size:26px">🅱</span><div class="cmp-slot-lbl">Add Product B</div>
+        <input type="file" id="cfb" accept="image/*" style="display:none" onchange="onCmpFile('b',event)">
+      </div>
+    </div>
+    <button class="analyze-btn" id="cmp-btn" onclick="doCompare()" style="display:block;opacity:.4;cursor:default" disabled>Compare Products →</button>
+    <div id="cmp-loading" style="display:none"><div class="loading"><div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div><div class="loading-txt">Comparing products…</div></div></div>
+    <div id="cmp-result"></div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="tab-history" class="screen">
+    <div class="sec-hdr">Scan history</div>
+    <div id="hist-content"></div>
+  </div>
+
+  <!-- PROFILE TAB -->
+  <div id="tab-profile" class="screen">
+    <div class="sec-hdr">Your health profile</div>
+    <div class="rcard">
+      <div class="prof-section">
+        <div class="prof-lbl">Allergies &amp; intolerances</div>
+        <div class="tag-wrap">
+          <button class="ptag pa" onclick="tog(this)">Peanuts</button><button class="ptag pa" onclick="tog(this)">Tree nuts</button><button class="ptag pa" onclick="tog(this)">Dairy</button><button class="ptag pa" onclick="tog(this)">Gluten</button><button class="ptag pa" onclick="tog(this)">Eggs</button><button class="ptag pa" onclick="tog(this)">Soy</button><button class="ptag pa" onclick="tog(this)">Shellfish</button><button class="ptag pa" onclick="tog(this)">Fish</button><button class="ptag pa" onclick="tog(this)">Sesame</button><button class="ptag pa" onclick="tog(this)">Mustard</button>
+        </div>
+      </div>
+      <div class="prof-section">
+        <div class="prof-lbl">Health goals</div>
+        <div class="tag-wrap">
+          <button class="ptag pg" onclick="tog(this)">Weight loss</button><button class="ptag pg" onclick="tog(this)">Muscle gain</button><button class="ptag pg" onclick="tog(this)">Heart health</button><button class="ptag pg" onclick="tog(this)">Gut health</button><button class="ptag pg" onclick="tog(this)">Low sugar</button><button class="ptag pg" onclick="tog(this)">High protein</button><button class="ptag pg" onclick="tog(this)">Low sodium</button><button class="ptag pg" onclick="tog(this)">Keto</button><button class="ptag pg" onclick="tog(this)">Energy</button>
+        </div>
+      </div>
+      <div class="prof-section">
+        <div class="prof-lbl">Medical conditions</div>
+        <div class="tag-wrap">
+          <button class="ptag pc" onclick="tog(this)">Diabetes</button><button class="ptag pc" onclick="tog(this)">Hypertension</button><button class="ptag pc" onclick="tog(this)">High cholesterol</button><button class="ptag pc" onclick="tog(this)">PCOD/PCOS</button><button class="ptag pc" onclick="tog(this)">Thyroid</button><button class="ptag pc" onclick="tog(this)">Kidney disease</button><button class="ptag pc" onclick="tog(this)">IBS/IBD</button><button class="ptag pc" onclick="tog(this)">Pregnancy</button><button class="ptag pc" onclick="tog(this)">Anaemia</button>
+        </div>
+      </div>
+      <div class="prof-section" style="margin-bottom:0">
+        <div class="prof-lbl">Diet &amp; extra notes</div>
+        <textarea class="prof-textarea" id="en" placeholder="E.g. vegetarian, lactose sensitive, lowering A1C…"></textarea>
+      </div>
+    </div>
+    <button class="save-prof-btn" onclick="saveProfile()">Save Profile</button>
+    <div class="saved-toast" id="saved-toast">✓ Profile saved</div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="navbtn on" onclick="goTab('scan')"><span class="navicon">🔬</span>Scan</button>
+    <button class="navbtn" onclick="goTab('compare')"><span class="navicon">⚖️</span>Compare</button>
+    <button class="navbtn" onclick="goTab('history')"><span class="navicon">📋</span>History</button>
+    <button class="navbtn" onclick="goTab('profile')"><span class="navicon">👤</span>Profile</button>
+  </div>
+</div>
+
+<script>
+const APP={
+  b64:null,mime:'image/jpeg',
+  cmp:{a:null,b:null,ma:'image/jpeg',mb:'image/jpeg'},
+  profile:JSON.parse(localStorage.getItem('nl_profile')||'{"al":[],"go":[],"co":[],"no":""}'),
+  history:JSON.parse(localStorage.getItem('nl_history')||'[]'),
+  stream:null,facing:'environment'
+};
+
+window.addEventListener('load',()=>{restoreProfile();renderHistory();});
+
+function setSt(s,m){
+  document.getElementById('kdot').className='kdot '+(s==='ok'?'ok':s==='er'?'er':'ck');
+  document.getElementById('kstxt').textContent=m;
+}
+
+async function apiCall(userContent, maxTok){
+  const r = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens: maxTok||2000,
+      messages:[{role:'user', content: userContent}]
+    })
+  });
+  const d = await r.json();
+  if(!r.ok || d.error) throw new Error(d.error?.message||`HTTP ${r.status}`);
+  const txt = d.content?.find(b=>b.type==='text')?.text||'';
+  if(!txt) throw new Error('Empty response.');
+  return txt.trim();
+}
+
+function vmsg(prompt, b64, mime){
+  return [
+    {type:'image', source:{type:'base64', media_type: mime||'image/jpeg', data: b64}},
+    {type:'text', text: prompt}
+  ];
+}
+
+async function callWithFallback(content, maxTok){
+  setSt('ck','Analyzing…');
+  try {
+    const result = await apiCall(content, maxTok);
+    setSt('ok','Powered by Claude — ready to scan');
+    return result;
+  } catch(e) {
+    setSt('er', e.message.substring(0,70));
+    throw e;
+  }
+}
+
+function resizeImg(dataUrl,maxPx,q){
+  return new Promise(res=>{
+    const img=new Image();img.onload=()=>{
+      let w=img.width,h=img.height;
+      if(w>maxPx||h>maxPx){const s=maxPx/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      res(c.toDataURL('image/jpeg',q||0.88));
+    };img.src=dataUrl;
+  });
+}
+
+async function openCam(){
+  stopCam();
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:APP.facing,width:{ideal:1280},height:{ideal:720}}});
+    APP.stream=st;document.getElementById('vid').srcObject=st;
+    show('vid');hide('ph');hide('prev');
+    document.getElementById('shr').style.display='flex';
+    hide('use-btn');hide('analyze-btn');hide('scan-loading');clr('scan-result');hide('extracted');
+  }catch(e){alert('Camera unavailable: '+e.message);}
+}
+function stopCam(){if(APP.stream){APP.stream.getTracks().forEach(t=>t.stop());APP.stream=null;}}
+async function flipCam(){APP.facing=APP.facing==='environment'?'user':'environment';openCam();}
+function snap(){
+  const v=document.getElementById('vid'),c=document.getElementById('cvs');
+  c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  const u=c.toDataURL('image/jpeg',.88);
+  APP.b64=u.split(',')[1];APP.mime='image/jpeg';
+  document.getElementById('prev').src=u;show('prev');hide('vid');
+  document.getElementById('shr').style.display='none';show('use-btn');
+}
+function usePic(){stopCam();hide('use-btn');show('analyze-btn');}
+function onFile(e){
+  const f=e.target.files[0];if(!f)return;
+  stopCam();hide('vid');document.getElementById('shr').style.display='none';
+  hide('use-btn');hide('ph');
+  const r=new FileReader();
+  r.onload=async ev=>{
+    const u=await resizeImg(ev.target.result,1280,.9);
+    APP.b64=u.split(',')[1];APP.mime='image/jpeg';
+    document.getElementById('prev').src=u;show('prev');show('analyze-btn');
+    clr('scan-result');hide('extracted');
+  };
+  r.readAsDataURL(f);
+}
+
+function profileContext(){
+  const p=APP.profile;let s='';
+  if(p.al?.length)s+=`ALLERGIES — CHECK EVERY INGREDIENT: ${p.al.join(', ')}. `;
+  if(p.go?.length)s+=`HEALTH GOALS: ${p.go.join(', ')}. `;
+  if(p.co?.length)s+=`MEDICAL CONDITIONS: ${p.co.join(', ')}. `;
+  if(p.no)s+=`EXTRA: ${p.no}. `;
+  return s||'General healthy adult, no restrictions.';
+}
+
+const SCAN_PROMPT=()=>`You are an expert nutritionist analyzing a food product label for a patient.
+PATIENT PROFILE: ${profileContext()}
+Study this image carefully. Read ALL text: product name, brand, ingredients list, nutrition facts table, serving size, allergen info.
+RESPOND WITH ONLY A VALID JSON OBJECT. Start immediately with { end with }. No markdown, no text outside JSON.
+{"product_name":"","brand":"","overall_score":0,"score_label":"Good","score_color":"green","score_reason":"","serving_size":"","extracted_text":"","allergen_alerts":[{"ingredient":"","reason":"","severity":"danger"}],"nutrients":[{"name":"Calories","value":"","verdict":"good","plain_english":""},{"name":"Total Fat","value":"","verdict":"good","plain_english":""},{"name":"Saturated Fat","value":"","verdict":"good","plain_english":""},{"name":"Sugar","value":"","verdict":"good","plain_english":""},{"name":"Sodium","value":"","verdict":"good","plain_english":""},{"name":"Protein","value":"","verdict":"good","plain_english":""},{"name":"Fibre","value":"","verdict":"good","plain_english":""},{"name":"Carbs","value":"","verdict":"good","plain_english":""}],"ingredient_breakdown":[{"name":"","severity":"amber","one_liner":"","what_is_it":"","why_it_matters":"","how_much_is_safe":"","who_should_avoid":"","tag":"Limit"}],"nutritionist_insights":["","",""],"verdict_for_user":"","better_alternatives":"","did_you_know":""}
+Rules: score 0-100; score_color green>=70,amber 40-69,red<40; verdict: good/mod/high; include 4-6 notable ingredients; explain like zero science background; did_you_know = one surprising fact about this product.`;
+
+async function doScan(){
+  if(!APP.b64){alert('Capture or upload an image first.');return;}
+  hide('analyze-btn');show('scan-loading');clr('scan-result');hide('extracted');
+  setSteps(0);document.getElementById('ltxt').textContent='Reading your label…';
+  try{
+    setSteps(1);setTimeout(()=>setSteps(2),4000);setTimeout(()=>setSteps(3),9000);
+    const raw=await callWithFallback(vmsg(SCAN_PROMPT(),APP.b64,APP.mime),2000);
+    setSteps(4);
+    const result=parseJ(raw);
+    if(result.extracted_text){
+      const ex=document.getElementById('extracted');
+      ex.textContent='📄 '+result.extracted_text.substring(0,400);
+      ex.style.display='block';
+    }
+    hide('scan-loading');renderResult(result);
+    const entry={id:Date.now(),name:result.product_name||'Unknown',score:result.overall_score,color:result.score_color,date:new Date().toLocaleDateString('en-IN'),thumb:document.getElementById('prev').src,result};
+    APP.history.unshift(entry);
+    if(APP.history.length>20)APP.history=APP.history.slice(0,20);
+    localStorage.setItem('nl_history',JSON.stringify(APP.history));
+    renderHistory();
+  }catch(e){
+    hide('scan-loading');show('analyze-btn');
+    document.getElementById('scan-result').innerHTML=`<div class="err-card"><strong>Analysis failed</strong>${e.message}<div class="tip-box">💡 Try again — or check your connection.</div></div>`;
+  }
+}
+
+function setSteps(n){[1,2,3,4].forEach(i=>document.getElementById('s'+i).classList.toggle('dn',i<=n));}
+function sColor(c){return c==='green'?'#0d6e3f':c==='red'?'#b53030':'#9c5800';}
+function vClass(v){return v==='high'?'v-high':v==='mod'?'v-mod':'v-good';}
+function vLabel(v){return v==='high'?'High ⚠':v==='mod'?'Moderate':'Good ✓';}
+
+function renderResult(r){
+  const col=sColor(r.score_color||'amber');
+  const circ=2*Math.PI*34,dash=((Math.min(r.overall_score||50,100))/100)*circ;
+  const aH=(r.allergen_alerts||[]).filter(a=>a?.ingredient).map(a=>
+    `<div class="alert-item alert-${a.severity==='danger'?'danger':'warn'}"><span class="alert-icon">${a.severity==='danger'?'⛔':'⚠️'}</span><div><strong>${a.ingredient}</strong> — ${a.reason}</div></div>`
+  ).join('');
+  const nH=(r.nutrients||[]).map(n=>
+    `<div class="nutr-cell"><div class="nutr-name">${n.name}</div><div class="nutr-val">${n.value||'—'}</div><div class="nutr-verdict ${vClass(n.verdict)}">${vLabel(n.verdict)}</div><div class="nutr-plain">${n.plain_english||''}</div></div>`
+  ).join('');
+  const iH=(r.ingredient_breakdown||[]).filter(g=>g?.name).map((g,i)=>{
+    const dc=g.severity==='red'?'dot-red':g.severity==='amber'?'dot-amber':'dot-green';
+    const tc=g.tag==='Avoid'?'tag-avoid':g.tag==='Limit'?'tag-limit':'tag-ok';
+    return `<div class="ingr"><div class="ingr-hdr" onclick="tii(${i})"><div class="ingr-dot ${dc}"></div><div class="ingr-info"><div class="ingr-name">${g.name}</div><div class="ingr-sub">${g.one_liner||''}</div></div><span class="ingr-tag ${tc}">${g.tag}</span><span class="ingr-chev" id="ic${i}">▼</span></div><div class="ingr-body" id="ib${i}"><div class="ingr-section"><div class="ingr-section-title">What is it?</div><p>${g.what_is_it||'—'}</p></div><div class="ingr-section"><div class="ingr-section-title">Why it matters</div><p>${g.why_it_matters||'—'}</p></div><div class="ingr-section"><div class="ingr-section-title">Safe intake</div><p>${g.how_much_is_safe||'—'}</p></div>${g.who_should_avoid?`<div class="ingr-who">⚠ Caution: ${g.who_should_avoid}</div>`:''}</div></div>`;
+  }).join('');
+  const insH=(r.nutritionist_insights||[]).filter(Boolean).map(x=>`<div class="insight"><div class="insight-dot"></div>${x}</div>`).join('');
+  document.getElementById('scan-result').innerHTML=`
+    <div class="rcard"><div class="rlbl">Health score</div><div class="score-hero"><div class="score-ring"><svg width="82" height="82" viewBox="0 0 82 82"><circle cx="41" cy="41" r="34" fill="none" stroke="#eae8e0" stroke-width="7"/><circle cx="41" cy="41" r="34" fill="none" stroke="${col}" stroke-width="7" stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" stroke-linecap="round"/></svg><div class="score-ring-num" style="color:${col}">${r.overall_score||'?'}</div></div><div class="score-info"><div class="score-badge" style="background:${col}18;color:${col};border:1px solid ${col}33">${r.score_label||''}</div><h2>${r.product_name||'Product'}${r.brand?`<br><span style="font-size:13px;font-weight:400;font-style:italic;color:var(--ink3)">${r.brand}</span>`:''}</h2><p>${r.score_reason||''}</p></div></div>${r.serving_size?`<div style="margin-top:9px;font-size:11.5px;color:var(--ink3);padding:6px 9px;background:var(--card2);border-radius:var(--r-xs);border:1px solid var(--border)">📏 Serving: <strong>${r.serving_size}</strong></div>`:''}</div>
+    ${aH?`<div class="rcard"><div class="rlbl">🚨 Allergy alerts</div>${aH}</div>`:''}
+    <div class="rcard"><div class="rlbl">Nutritional breakdown</div><div class="nutr-grid">${nH}</div></div>
+    ${iH?`<div class="rcard"><div class="rlbl">Ingredient deep-dive</div><div class="dd-intro">Tap each ingredient to understand what it is, what it does in your body, and who should be careful.</div>${iH}</div>`:''}
+    ${insH?`<div class="rcard"><div class="rlbl">Nutritionist insights</div>${insH}</div>`:''}
+    ${r.did_you_know?`<div class="dyk-card"><div class="dyk-lbl">💡 Did you know?</div><p>${r.did_you_know}</p></div>`:''}
+    ${r.verdict_for_user?`<div class="verdict-card"><div class="verdict-lbl">Verdict for you</div><p>${r.verdict_for_user}</p></div>`:''}
+    ${r.better_alternatives?`<div class="rcard"><div class="rlbl">Better alternatives</div><p style="font-size:12.5px;color:var(--ink2);line-height:1.65">${r.better_alternatives}</p></div>`:''}
+    <button class="reset-btn" onclick="resetScan()">← Scan another product</button>`;
+}
+function tii(i){document.getElementById('ib'+i).classList.toggle('op');document.getElementById('ic'+i).classList.toggle('op');}
+function resetScan(){
+  stopCam();APP.b64=null;
+  ['prev','vid','use-btn','analyze-btn','extracted'].forEach(hide);
+  document.getElementById('shr').style.display='none';
+  document.getElementById('ph').style.display='flex';
+  clr('scan-result');document.getElementById('fi').value='';
+}
+
+function renderHistory(){
+  const el=document.getElementById('hist-content');
+  if(!APP.history.length){el.innerHTML=`<div class="hist-empty"><div class="hist-empty-icon">📋</div><p>Scanned products appear here</p></div>`;return;}
+  el.innerHTML=APP.history.map(h=>{
+    const col=sColor(h.color||'amber');
+    return `<div class="hist-item" onclick="showHist(${h.id})">${h.thumb?`<img class="hist-thumb" src="${h.thumb}" onerror="this.outerHTML='<div class=hist-thumb-ph>🍽</div>'">`:'<div class="hist-thumb-ph">🍽</div>'}<div class="hist-info"><div class="hist-name">${h.name}</div><div class="hist-date">${h.date}</div></div><div class="hist-score" style="color:${col}">${h.score}</div></div>`;
+  }).join('')+`<button class="hist-clear" onclick="clearHist()">Clear history</button>`;
+}
+function showHist(id){
+  const h=APP.history.find(x=>x.id===id);if(!h)return;
+  goTab('scan');
+  setTimeout(()=>{if(h.thumb){document.getElementById('prev').src=h.thumb;show('prev');hide('ph');}hide('analyze-btn');renderResult(h.result);},100);
+}
+function clearHist(){if(!confirm('Clear all scan history?'))return;APP.history=[];localStorage.setItem('nl_history','[]');renderHistory();}
+
+function onCmpFile(slot,e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=async ev=>{
+    const u=await resizeImg(ev.target.result,1000,.85);
+    APP.cmp[slot]=u.split(',')[1];APP.cmp['m'+slot]='image/jpeg';
+    const sl=document.getElementById('cs'+slot);sl.classList.add('fl');
+    sl.innerHTML=`<img src="${u}" style="width:100%;max-height:65px;object-fit:cover;border-radius:7px"><div class="cmp-slot-name">Product ${slot.toUpperCase()}</div><div class="cmp-slot-lbl" style="font-size:10px">Tap to change</div>`;
+    sl.onclick=()=>document.getElementById('cf'+slot).click();
+    const ready=!!(APP.cmp.a&&APP.cmp.b);
+    const btn=document.getElementById('cmp-btn');
+    btn.disabled=!ready;btn.style.opacity=ready?'1':'.4';btn.style.cursor=ready?'pointer':'default';
+  };
+  r.readAsDataURL(f);
+}
+
+const CMP_PROMPT=()=>`You are a nutritionist comparing two food products for a patient.
+PATIENT PROFILE: ${profileContext()}
+Image 1=Product A, Image 2=Product B. Read both labels carefully.
+RESPOND WITH ONLY A VALID JSON OBJECT (start {, end }):
+{"product_a":"","product_b":"","winner":"A","winner_reason":"","score_a":0,"score_b":0,"score_color_a":"green","score_color_b":"amber","allergen_alerts":[{"product":"A","ingredient":"","reason":""}],"comparison":[{"nutrient":"Calories","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":true,"winner":"A"},{"nutrient":"Sugar","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":true,"winner":"A"},{"nutrient":"Protein","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":false,"winner":"A"},{"nutrient":"Sodium","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":true,"winner":"A"},{"nutrient":"Sat.Fat","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":true,"winner":"A"},{"nutrient":"Fibre","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":false,"winner":"A"}],"key_differences":["","",""],"recommendation":""}`;
+
+async function doCompare(){
+  if(!APP.cmp.a||!APP.cmp.b)return;
+  show('cmp-loading');clr('cmp-result');document.getElementById('cmp-btn').disabled=true;
+  try{
+    const msgs=[
+      {type:'image', source:{type:'base64', media_type: APP.cmp.ma, data: APP.cmp.a}},
+      {type:'image', source:{type:'base64', media_type: APP.cmp.mb, data: APP.cmp.b}},
+      {type:'text', text: CMP_PROMPT()}
+    ];
+    const raw=await callWithFallback(msgs,2000);
+    const result=parseJ(raw);
+    hide('cmp-loading');renderCmp(result);
+  }catch(e){
+    hide('cmp-loading');
+    document.getElementById('cmp-result').innerHTML=`<div class="err-card"><strong>Comparison failed</strong>${e.message}</div>`;
+    document.getElementById('cmp-btn').disabled=false;
+  }
+}
+
+function renderCmp(r){
+  const cA=sColor(r.score_color_a||(r.score_a>=70?'green':r.score_a>=40?'amber':'red'));
+  const cB=sColor(r.score_color_b||(r.score_b>=70?'green':r.score_b>=40?'amber':'red'));
+  const gA=r.score_a>=r.score_b,gB=r.score_b>r.score_a;
+  const aH=(r.allergen_alerts||[]).filter(a=>a?.ingredient).map(a=>
+    `<div class="alert-item alert-danger"><span class="alert-icon">⛔</span><strong>Product ${a.product}</strong>: ${a.ingredient} — ${a.reason}</div>`
+  ).join('');
+  const bH=(r.comparison||[]).map(c=>{
+    const mx=Math.max(c.a_num||0,c.b_num||0,1);
+    const pA=Math.round((c.a_num/mx)*100),pB=Math.round((c.b_num/mx)*100);
+    return `<div class="cmp-bar-section"><div class="cbl"><span>${c.nutrient}</span><span class="cbhint">${c.lower_better?'lower = better':'higher = better'}</span></div><div class="cbrw"><span class="cbl2${c.winner==='A'?' w':''}">A</span><div class="ctrack"><div class="cfill fill-a" style="width:${pA}%"></div></div><span class="cval">${c.a_val}</span></div><div class="cbrw"><span class="cbl2${c.winner==='B'?' w':''}">B</span><div class="ctrack"><div class="cfill fill-b" style="width:${pB}%"></div></div><span class="cval">${c.b_val}</span></div></div>`;
+  }).join('');
+  const dH=(r.key_differences||[]).filter(Boolean).map(d=>`<div class="insight"><div class="insight-dot"></div>${d}</div>`).join('');
+  document.getElementById('cmp-result').innerHTML=`
+    <div class="rcard"><div class="rlbl">Head to head</div><div style="display:grid;grid-template-columns:1fr 32px 1fr;align-items:center;gap:8px;margin-bottom:11px">
+      <div style="padding:11px;border-radius:var(--r-sm);border:${gA?'2px solid var(--g3)':'1px solid var(--border)'};background:${gA?'var(--g-bg)':'var(--card2)'};text-align:center"><div style="font-size:9.5px;color:var(--ink3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Product A</div><div style="font-family:'Playfair Display',serif;font-size:12.5px;margin-bottom:3px;font-style:italic">${r.product_a||'A'}</div><div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:${cA}">${r.score_a}</div>${gA?'<div style="font-size:9.5px;background:var(--g3);color:var(--ink);border-radius:20px;padding:2px 7px;margin-top:3px;display:inline-block;font-weight:700;letter-spacing:.04em">WINNER</div>':''}</div>
+      <div style="text-align:center;font-family:Playfair Display,serif;font-size:13px;color:var(--ink3);font-style:italic">vs</div>
+      <div style="padding:11px;border-radius:var(--r-sm);border:${gB?'2px solid var(--g3)':'1px solid var(--border)'};background:${gB?'var(--g-bg)':'var(--card2)'};text-align:center"><div style="font-size:9.5px;color:var(--ink3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Product B</div><div style="font-family:'Playfair Display',serif;font-size:12.5px;margin-bottom:3px;font-style:italic">${r.product_b||'B'}</div><div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:${cB}">${r.score_b}</div>${gB?'<div style="font-size:9.5px;background:var(--g3);color:var(--ink);border-radius:20px;padding:2px 7px;margin-top:3px;display:inline-block;font-weight:700;letter-spacing:.04em">WINNER</div>':''}</div>
+    </div><p style="font-size:12.5px;color:var(--ink2);line-height:1.6">${r.winner_reason||''}</p></div>
+    ${aH?`<div class="rcard">${aH}</div>`:''}
+    <div class="rcard"><div class="rlbl">Nutrient comparison</div>${bH}</div>
+    ${dH?`<div class="rcard"><div class="rlbl">Key differences</div>${dH}</div>`:''}
+    ${r.recommendation?`<div class="verdict-card"><div class="verdict-lbl">Recommendation for you</div><p>${r.recommendation}</p></div>`:''}
+    <button class="reset-btn" onclick="resetCmp()">← Compare different products</button>`;
+}
+
+function resetCmp(){
+  APP.cmp={a:null,b:null,ma:'image/jpeg',mb:'image/jpeg'};
+  ['a','b'].forEach(s=>{
+    const sl=document.getElementById('cs'+s);sl.classList.remove('fl');
+    sl.innerHTML=`<span style="font-size:26px">${s==='a'?'🅰':'🅱'}</span><div class="cmp-slot-lbl">Add Product ${s.toUpperCase()}</div>`;
+    sl.onclick=()=>document.getElementById('cf'+s).click();
+    document.getElementById('cf'+s).value='';
+  });
+  clr('cmp-result');
+  const btn=document.getElementById('cmp-btn');btn.disabled=true;btn.style.opacity='.4';btn.style.cursor='default';
+}
+
+function restoreProfile(){
+  const p=APP.profile;
+  document.querySelectorAll('.pa').forEach(b=>{if(p.al?.includes(b.textContent.trim()))b.classList.add('on');});
+  document.querySelectorAll('.pg').forEach(b=>{if(p.go?.includes(b.textContent.trim()))b.classList.add('on');});
+  document.querySelectorAll('.pc').forEach(b=>{if(p.co?.includes(b.textContent.trim()))b.classList.add('on');});
+  if(p.no)document.getElementById('en').value=p.no;
+}
+function saveProfile(){
+  APP.profile={
+    al:[...document.querySelectorAll('.pa.on')].map(b=>b.textContent.trim()),
+    go:[...document.querySelectorAll('.pg.on')].map(b=>b.textContent.trim()),
+    co:[...document.querySelectorAll('.pc.on')].map(b=>b.textContent.trim()),
+    no:document.getElementById('en').value
+  };
+  localStorage.setItem('nl_profile',JSON.stringify(APP.profile));
+  const t=document.getElementById('saved-toast');t.style.display='block';setTimeout(()=>t.style.display='none',2500);
+}
+
+function parseJ(raw){
+  raw=raw.replace(/```json|```/g,'').trim();
+  const a=raw.indexOf('{');
+  if(a<0)throw new Error('Model returned no JSON. Response was: '+raw.substring(0,150));
+  let depth=0,end=-1;
+  for(let i=a;i<raw.length;i++){if(raw[i]==='{')depth++;else if(raw[i]==='}'){depth--;if(depth===0){end=i;break;}}}
+  const chunk=end>0?raw.substring(a,end+1):raw.substring(a);
+  try{return JSON.parse(chunk);}
+  catch{
+    let fix=chunk;
+    const op=(fix.match(/\[/g)||[]).length-(fix.match(/\]/g)||[]).length;
+    const ob=(fix.match(/\{/g)||[]).length-(fix.match(/\}/g)||[]).length;
+    if((fix.match(/"/g)||[]).length%2!==0)fix+='"';
+    for(let i=0;i<op;i++)fix+=']';
+    for(let i=0;i<ob;i++)fix+='}';
+    return JSON.parse(fix);
+  }
+}
+function goTab(t){
+  ['scan','compare','history','profile'].forEach((id,i)=>{
+    document.getElementById('tab-'+id).classList.toggle('on',id===t);
+    document.querySelectorAll('.navbtn')[i].classList.toggle('on',id===t);
+  });
+}
+function tog(el){el.classList.toggle('on');}
+function show(id){const e=document.getElementById(id);if(e)e.style.display='block';}
+function hide(id){const e=document.getElementById(id);if(e)e.style.display='none';}
+function clr(id){document.getElementById(id).innerHTML='';}
+</script>
+</body>
+</html>
