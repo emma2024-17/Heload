@@ -1,688 +1,908 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>NutriLens — AI Nutritionist</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{
-  --ink:#0f1116;--ink2:#3a3f4d;--ink3:#7a8190;
-  --paper:#f5f4f0;--card:#ffffff;--card2:#fafaf8;--border:#e4e2dc;--border2:#ccc9c0;
-  --g1:#0d6e3f;--g2:#15a05c;--g3:#1dbe6e;--g-bg:#ebf7f1;--g-soft:#d4f0e2;
-  --r1:#b53030;--r-bg:#fdf0f0;
-  --a1:#9c5800;--a-bg:#fff7eb;
-  --blue:#2a6be0;--blue-bg:#eef3fd;
-  --r:14px;--r-sm:9px;--r-xs:5px;
-  --sh:0 1px 2px rgba(0,0,0,.05),0 4px 18px rgba(0,0,0,.07);
-  --sh-lg:0 8px 40px rgba(0,0,0,.12);
-}
-html,body{height:100%;font-family:'Syne',sans-serif;background:#e8e6e0;color:var(--ink);font-size:15px;line-height:1.5}
+import { useState, useRef, useCallback, useEffect } from "react";
 
-/* ── APP SHELL ── */
-#app{max-width:420px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--paper);position:relative;box-shadow:0 0 60px rgba(0,0,0,.15)}
-
-/* ── HEADER ── */
-.hdr{background:var(--ink);padding:18px 20px 0;position:relative;overflow:hidden}
-.hdr::before{content:'';position:absolute;top:-40px;right:-20px;width:160px;height:160px;border-radius:50%;background:linear-gradient(135deg,#0d6e3f22,#1dbe6e11);pointer-events:none}
-.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.hdr-logo{font-family:'Playfair Display',serif;font-size:26px;color:#fff;letter-spacing:-.3px;display:flex;align-items:baseline;gap:2px}
-.hdr-logo em{color:var(--g3);font-style:italic}
-.hdr-pill{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--g3);background:rgba(29,190,110,.12);border:1px solid rgba(29,190,110,.25);border-radius:20px;padding:3px 9px}
-
-.key-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);padding:13px 14px;margin-bottom:0}
-.key-box-title{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--g3);margin-bottom:9px}
-.key-row{display:flex;gap:7px;margin-bottom:8px}
-.key-inp{flex:1;border:1px solid rgba(255,255,255,.12);border-radius:var(--r-sm);padding:8px 12px;font-family:'Syne',sans-serif;font-size:12.5px;background:rgba(255,255,255,.08);color:#fff;outline:none;transition:border-color .2s}
-.key-inp:focus{border-color:var(--g3)}
-.key-inp::placeholder{color:rgba(255,255,255,.3)}
-.key-save{padding:8px 14px;background:var(--g3);color:var(--ink);border:none;border-radius:var(--r-sm);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
-.key-save:hover{background:#22d87e;transform:translateY(-1px)}
-.key-hint{font-size:11px;color:rgba(255,255,255,.35);line-height:1.5}
-.key-hint a{color:var(--g3);text-decoration:none;font-weight:600}
-
-.key-status{display:flex;align-items:center;gap:7px;padding:10px 0 2px}
-.kdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;transition:background .3s}
-.kdot.ok{background:var(--g3)}.kdot.er{background:#e05a5a}.kdot.ck{background:#f5c842;animation:blink 1s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-.kstxt{font-size:11.5px;color:rgba(255,255,255,.45);flex:1}
-
-.model-sel{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
-.model-sel-lbl{font-size:10px;font-weight:700;color:var(--g3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px}
-.mbtn{font-size:10.5px;padding:3px 9px;border-radius:20px;border:1px solid rgba(255,255,255,.15);background:transparent;cursor:pointer;font-family:'Syne',sans-serif;color:rgba(255,255,255,.45);transition:all .15s}
-.mbtn.on{background:rgba(29,190,110,.18);color:var(--g3);border-color:rgba(29,190,110,.4);font-weight:700}
-#model-btns{display:flex;gap:5px;flex-wrap:wrap}
-
-/* ── NAV ── */
-.nav{display:flex;border-top:1px solid var(--border);background:var(--card);position:sticky;bottom:0;z-index:20;box-shadow:0 -2px 20px rgba(0,0,0,.08)}
-.navbtn{flex:1;padding:11px 4px 9px;border:none;background:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:10.5px;font-weight:600;color:var(--ink3);display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s;position:relative;letter-spacing:.02em}
-.navbtn.on{color:var(--g1)}
-.navbtn.on::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:28px;height:2.5px;border-radius:2px;background:var(--g3);box-shadow:0 0 8px rgba(29,190,110,.5)}
-.navicon{font-size:19px;line-height:1}
-
-/* ── SCREENS ── */
-.screen{display:none;flex:1;padding:16px 18px 80px;overflow-y:auto;animation:fadein .2s ease}
-.screen.on{display:block}
-@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-
-/* ── CAPTURE AREA ── */
-.capture{background:var(--ink);border-radius:var(--r);overflow:hidden;margin-bottom:11px;position:relative;min-height:190px;display:flex;align-items:center;justify-content:center}
-.capture::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 60%,rgba(0,0,0,.5));pointer-events:none;border-radius:var(--r)}
-#vid{width:100%;max-height:250px;object-fit:cover;display:none}
-#cvs{display:none}
-#prev{width:100%;max-height:250px;object-fit:cover;display:none;border-radius:var(--r)}
-.capture-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:30px;text-align:center}
-.capture-ph-icon{font-size:42px;line-height:1;filter:drop-shadow(0 4px 12px rgba(29,190,110,.3))}
-.capture-ph-text{font-size:14px;color:rgba(255,255,255,.55);line-height:1.4}
-.capture-ph-sub{font-size:11.5px;color:rgba(255,255,255,.28)}
-.shutter-wrap{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:14px;z-index:5}
-.shutter{width:58px;height:58px;border-radius:50%;background:white;border:4px solid rgba(255,255,255,.3);cursor:pointer;box-shadow:0 2px 20px rgba(0,0,0,.4);transition:transform .1s,box-shadow .1s;position:relative}
-.shutter:active{transform:scale(.86)}
-.shutter::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:white;display:block}
-.flipbtn{width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);cursor:pointer;color:white;font-size:17px;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.flipbtn:hover{background:rgba(0,0,0,.7)}
-input[type=file]{display:none}
-
-/* ── CONTROLS ── */
-.ctrl-bar{display:flex;gap:7px;margin-bottom:11px}
-.cbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--card);cursor:pointer;font-family:'Syne',sans-serif;font-size:12.5px;font-weight:600;color:var(--ink2);transition:all .15s}
-.cbtn:hover{background:var(--card2);border-color:var(--border2)}
-.cbtn.primary{background:var(--ink);color:white;border-color:var(--ink)}
-.cbtn.primary:hover{background:#1c2230}
-.cbtn:disabled{opacity:.35;cursor:default}
-
-.analyze-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--g1),var(--g2));color:white;border:none;border-radius:var(--r-sm);font-family:'Playfair Display',serif;font-size:17px;font-style:italic;cursor:pointer;display:none;margin-bottom:11px;transition:all .2s;letter-spacing:.01em;box-shadow:0 4px 20px rgba(13,110,63,.25)}
-.analyze-btn:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(13,110,63,.35)}
-.analyze-btn:active{transform:translateY(0)}
-
-.scan-tips{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap}
-.scan-tip{font-size:10.5px;padding:3px 9px;border-radius:20px;background:var(--g-bg);border:1px solid rgba(13,110,63,.15);color:var(--g1);font-weight:500}
-
-.extracted{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 11px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink3);max-height:75px;overflow-y:auto;margin-bottom:11px;display:none;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-
-/* ── LOADING ── */
-.loading{text-align:center;padding:36px 20px}
-.loader{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:14px}
-.loader-dot{width:7px;height:7px;border-radius:50%;background:var(--g3);animation:bounce .9s ease-in-out infinite}
-.loader-dot:nth-child(2){animation-delay:.18s}.loader-dot:nth-child(3){animation-delay:.36s}
-@keyframes bounce{0%,100%{transform:translateY(0);opacity:.3}50%{transform:translateY(-10px);opacity:1}}
-.loading-txt{font-family:'Playfair Display',serif;font-size:19px;color:var(--ink);margin-bottom:5px}
-.loading-sub{font-size:12.5px;color:var(--ink3)}
-.steps{display:flex;flex-direction:column;gap:7px;max-width:220px;margin:18px auto 0;text-align:left}
-.step{font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:8px;transition:color .3s}
-.step.dn{color:var(--g1)}
-.step-dot{width:5px;height:5px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .3s}
-.step.dn .step-dot{background:var(--g3);box-shadow:0 0 6px rgba(29,190,110,.5)}
-
-/* ── RESULT CARDS ── */
-.rcard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:11px;box-shadow:var(--sh)}
-.rlbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
-
-/* Score */
-.score-hero{display:flex;align-items:center;gap:14px}
-.score-ring{position:relative;width:82px;height:82px;flex-shrink:0}
-.score-ring svg{transform:rotate(-90deg)}
-.score-ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:24px;font-weight:700}
-.score-info h2{font-family:'Playfair Display',serif;font-size:17px;line-height:1.25;margin-bottom:3px}
-.score-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;margin-bottom:5px;letter-spacing:.03em}
-.score-info p{font-size:12.5px;color:var(--ink2);line-height:1.55}
-
-/* Alerts */
-.alert-item{display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border-radius:var(--r-sm);margin-bottom:6px;font-size:12.5px;line-height:1.5}
-.alert-item:last-child{margin-bottom:0}
-.alert-danger{background:var(--r-bg);color:var(--r1);border:1px solid rgba(181,48,48,.15)}
-.alert-warn{background:var(--a-bg);color:var(--a1);border:1px solid rgba(156,88,0,.15)}
-.alert-icon{font-size:15px;flex-shrink:0;margin-top:1px}
-
-/* Nutrients */
-.nutr-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.nutr-cell{background:var(--card2);border-radius:var(--r-sm);padding:9px 11px;border:1px solid var(--border)}
-.nutr-name{font-size:10px;color:var(--ink3);margin-bottom:2px;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
-.nutr-val{font-family:'Playfair Display',serif;font-size:19px;line-height:1;margin-bottom:3px}
-.nutr-verdict{font-size:10px;font-weight:700;letter-spacing:.02em}
-.v-good{color:var(--g1)}.v-mod{color:var(--a1)}.v-high{color:var(--r1)}
-.nutr-plain{font-size:10.5px;color:var(--ink3);line-height:1.4;margin-top:2px}
-
-/* Ingredients */
-.dd-intro{font-size:12.5px;color:var(--ink2);margin-bottom:11px;line-height:1.55}
-.ingr{border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:7px;overflow:hidden}
-.ingr-hdr{display:flex;align-items:center;gap:9px;padding:11px 13px;cursor:pointer;background:var(--card);transition:background .15s}
-.ingr-hdr:hover{background:var(--card2)}
-.ingr-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.dot-red{background:var(--r1)}.dot-amber{background:var(--a1)}.dot-green{background:var(--g3)}
-.ingr-info{flex:1}
-.ingr-name{font-weight:700;font-size:13px;color:var(--ink)}
-.ingr-sub{font-size:11.5px;color:var(--ink3);margin-top:1px}
-.ingr-tag{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;letter-spacing:.03em}
-.tag-avoid{background:var(--r-bg);color:var(--r1)}.tag-limit{background:var(--a-bg);color:var(--a1)}.tag-ok{background:var(--g-bg);color:var(--g1)}
-.ingr-chev{font-size:11px;color:var(--ink3);transition:transform .25s;margin-left:5px}
-.ingr-chev.op{transform:rotate(180deg)}
-.ingr-body{display:none;padding:11px 13px;background:var(--card2);border-top:1px solid var(--border)}
-.ingr-body.op{display:block}
-.ingr-section{margin-bottom:9px}.ingr-section:last-child{margin-bottom:0}
-.ingr-section-title{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:3px}
-.ingr-section p{font-size:12.5px;color:var(--ink2);line-height:1.6}
-.ingr-who{font-size:11.5px;color:var(--a1);background:var(--a-bg);border-radius:var(--r-xs);padding:7px 9px;border:1px solid rgba(156,88,0,.15);margin-top:7px;line-height:1.5}
-
-/* Insights */
-.insight{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--ink2);line-height:1.55}
-.insight:last-child{border:none}
-.insight-dot{width:5px;height:5px;border-radius:50%;background:var(--g3);flex-shrink:0;margin-top:7px}
-
-/* Did you know */
-.dyk-card{background:linear-gradient(135deg,#f0f4ff,#f4f0ff);border:1px solid #d4d0ef;border-radius:var(--r);padding:15px;margin-bottom:11px}
-.dyk-lbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5060b0;margin-bottom:7px}
-.dyk-card p{font-size:12.5px;color:#2a2a50;line-height:1.65}
-
-/* Verdict */
-.verdict-card{background:linear-gradient(135deg,var(--g-bg),#e8f8f0);border:1px solid rgba(13,110,63,.2);border-radius:var(--r);padding:15px;margin-bottom:11px}
-.verdict-lbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--g1);margin-bottom:7px}
-.verdict-card p{font-size:13.5px;color:#163a28;line-height:1.65}
-
-/* History */
-.hist-empty{text-align:center;padding:44px 20px;color:var(--ink3)}
-.hist-empty-icon{font-size:38px;margin-bottom:10px;opacity:.4}
-.hist-empty p{font-size:13px}
-.hist-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:9px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:11px;box-shadow:var(--sh)}
-.hist-item:hover{transform:translateY(-1px);box-shadow:var(--sh-lg)}
-.hist-thumb{width:50px;height:50px;border-radius:var(--r-sm);object-fit:cover;flex-shrink:0}
-.hist-thumb-ph{width:50px;height:50px;border-radius:var(--r-sm);background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.hist-info{flex:1;min-width:0}
-.hist-name{font-weight:700;font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hist-date{font-size:10.5px;color:var(--ink3);margin-top:2px}
-.hist-score{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;flex-shrink:0}
-.hist-clear{width:100%;padding:9px;border:1px solid rgba(181,48,48,.25);border-radius:var(--r-sm);background:none;font-family:'Syne',sans-serif;font-size:12.5px;color:var(--r1);cursor:pointer;margin-top:3px;transition:background .15s}
-.hist-clear:hover{background:var(--r-bg)}
-
-/* Compare */
-.cmp-slots{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
-.cmp-slot{border:2px dashed var(--border2);border-radius:var(--r);padding:14px;text-align:center;cursor:pointer;min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:all .2s}
-.cmp-slot:hover{border-color:var(--g3);background:var(--g-bg)}
-.cmp-slot.fl{border-style:solid;border-color:var(--g3);background:var(--g-soft)}
-.cmp-slot-lbl{font-size:11px;color:var(--ink3);font-weight:500}
-.cmp-slot-name{font-size:11.5px;font-weight:700;color:var(--g1);word-break:break-word}
-.cmp-bar-section{margin-bottom:11px}
-.cbl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2);margin-bottom:5px;font-weight:600}
-.cbhint{font-size:10.5px;color:var(--ink3);font-weight:400}
-.cbrw{display:flex;align-items:center;gap:7px;margin-bottom:4px}
-.cbl2{font-size:11px;width:12px;color:var(--ink3);font-weight:500}.cbl2.w{color:var(--g1);font-weight:800}
-.ctrack{flex:1;height:8px;background:var(--card2);border-radius:5px;overflow:hidden;border:1px solid var(--border)}
-.cfill{height:100%;border-radius:5px;transition:width .7s cubic-bezier(.34,1.56,.64,1)}
-.fill-a{background:var(--g3)}.fill-b{background:var(--a1)}
-.cval{font-size:11px;color:var(--ink2);min-width:42px;font-family:'JetBrains Mono',monospace}
-
-/* Profile */
-.prof-section{margin-bottom:15px}
-.prof-lbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px}
-.tag-wrap{display:flex;flex-wrap:wrap;gap:5px}
-.ptag{font-size:12px;padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;color:var(--ink2);transition:all .15s}
-.ptag.on{border-width:1.5px}
-.ptag.pa.on{background:var(--r-bg);color:var(--r1);border-color:rgba(181,48,48,.3)}
-.ptag.pg.on{background:var(--g-bg);color:var(--g1);border-color:rgba(13,110,63,.3)}
-.ptag.pc.on{background:var(--a-bg);color:var(--a1);border-color:rgba(156,88,0,.3)}
-.prof-textarea{width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 11px;font-family:'Syne',sans-serif;font-size:12.5px;background:var(--card2);color:var(--ink);resize:vertical;min-height:76px;outline:none;line-height:1.5}
-.prof-textarea:focus{border-color:var(--g3)}
-.prof-textarea::placeholder{color:var(--ink3)}
-.save-prof-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--g1),var(--g2));color:white;border:none;border-radius:var(--r-sm);font-family:'Playfair Display',serif;font-size:17px;font-style:italic;cursor:pointer;margin-top:3px;transition:all .2s;box-shadow:0 4px 18px rgba(13,110,63,.25)}
-.save-prof-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(13,110,63,.35)}
-.saved-toast{text-align:center;font-size:12.5px;color:var(--g1);padding:7px;display:none;font-weight:700;letter-spacing:.02em}
-.reset-btn{width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--r-sm);background:none;font-family:'Syne',sans-serif;font-size:12.5px;color:var(--ink3);cursor:pointer;margin-top:3px;transition:all .15s}
-.reset-btn:hover{background:var(--card2);color:var(--ink2)}
-.err-card{background:var(--r-bg);border:1px solid rgba(181,48,48,.2);border-radius:var(--r);padding:13px 15px;margin-bottom:11px;font-size:12.5px;color:var(--r1);line-height:1.6}
-.err-card strong{display:block;margin-bottom:5px;font-size:13.5px}
-.tip-box{background:var(--card);border:1px solid var(--border);border-radius:var(--r-xs);padding:9px;font-size:11.5px;color:var(--ink3);margin-top:7px}
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-
-/* section header used in profile + compare */
-.sec-hdr{font-family:'Playfair Display',serif;font-size:20px;font-style:italic;color:var(--ink);margin-bottom:14px}
-</style>
-</head>
-<body>
-<div id="app">
-  <!-- HEADER -->
-  <div class="hdr">
-    <div class="hdr-top">
-      <div class="hdr-logo">Nutri<em>Lens</em></div>
-      <div class="hdr-pill">AI Nutritionist</div>
-    </div>
-    <div class="key-box">
-      <div class="key-status"><div class="kdot ok" id="kdot"></div><span class="kstxt" id="kstxt">Powered by Claude — ready to scan</span></div>
-    </div>
-  </div>
-
-  <!-- SCAN TAB -->
-  <div id="tab-scan" class="screen on">
-    <div class="capture" id="cap">
-      <div class="capture-ph" id="ph">
-        <div class="capture-ph-icon">🔬</div>
-        <div class="capture-ph-text">Point camera at a nutrition label</div>
-        <div class="capture-ph-sub">or tap Upload below</div>
-      </div>
-      <video id="vid" autoplay playsinline muted></video>
-      <canvas id="cvs"></canvas>
-      <img id="prev" src="" alt="">
-      <div class="shutter-wrap" id="shr" style="display:none">
-        <button class="flipbtn" onclick="flipCam()">🔄</button>
-        <button class="shutter" onclick="snap()"></button>
-      </div>
-    </div>
-    <div class="scan-tips">
-      <div class="scan-tip">📸 Keep label flat</div>
-      <div class="scan-tip">💡 Good lighting</div>
-      <div class="scan-tip">🔤 Show all text</div>
-    </div>
-    <div class="ctrl-bar">
-      <button class="cbtn" onclick="openCam()">📷 Camera</button>
-      <button class="cbtn" onclick="document.getElementById('fi').click()">🖼 Upload</button>
-      <button class="cbtn primary" id="use-btn" style="display:none" onclick="usePic()">✓ Use Photo</button>
-    </div>
-    <input type="file" id="fi" accept="image/*" onchange="onFile(event)">
-    <div class="extracted" id="extracted"></div>
-    <button class="analyze-btn" id="analyze-btn" onclick="doScan()">Analyze Label →</button>
-    <div id="scan-loading" style="display:none">
-      <div class="loading">
-        <div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
-        <div class="loading-txt" id="ltxt">Reading your label…</div>
-        <div class="loading-sub">Takes ~15 s on free tier</div>
-        <div class="steps">
-          <div class="step" id="s1"><div class="step-dot"></div>Extracting text from image</div>
-          <div class="step" id="s2"><div class="step-dot"></div>Identifying ingredients</div>
-          <div class="step" id="s3"><div class="step-dot"></div>Nutritionist analysis</div>
-          <div class="step" id="s4"><div class="step-dot"></div>Personalizing for your profile</div>
-        </div>
-      </div>
-    </div>
-    <div id="scan-result"></div>
-  </div>
-
-  <!-- COMPARE TAB -->
-  <div id="tab-compare" class="screen">
-    <div class="sec-hdr">Compare products</div>
-    <div class="cmp-slots">
-      <div class="cmp-slot" id="csa" onclick="document.getElementById('cfa').click()">
-        <span style="font-size:26px">🅰</span><div class="cmp-slot-lbl">Add Product A</div>
-        <input type="file" id="cfa" accept="image/*" style="display:none" onchange="onCmpFile('a',event)">
-      </div>
-      <div class="cmp-slot" id="csb" onclick="document.getElementById('cfb').click()">
-        <span style="font-size:26px">🅱</span><div class="cmp-slot-lbl">Add Product B</div>
-        <input type="file" id="cfb" accept="image/*" style="display:none" onchange="onCmpFile('b',event)">
-      </div>
-    </div>
-    <button class="analyze-btn" id="cmp-btn" onclick="doCompare()" style="display:block;opacity:.4;cursor:default" disabled>Compare Products →</button>
-    <div id="cmp-loading" style="display:none"><div class="loading"><div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div><div class="loading-txt">Comparing products…</div></div></div>
-    <div id="cmp-result"></div>
-  </div>
-
-  <!-- HISTORY TAB -->
-  <div id="tab-history" class="screen">
-    <div class="sec-hdr">Scan history</div>
-    <div id="hist-content"></div>
-  </div>
-
-  <!-- PROFILE TAB -->
-  <div id="tab-profile" class="screen">
-    <div class="sec-hdr">Your health profile</div>
-    <div class="rcard">
-      <div class="prof-section">
-        <div class="prof-lbl">Allergies &amp; intolerances</div>
-        <div class="tag-wrap">
-          <button class="ptag pa" onclick="tog(this)">Peanuts</button><button class="ptag pa" onclick="tog(this)">Tree nuts</button><button class="ptag pa" onclick="tog(this)">Dairy</button><button class="ptag pa" onclick="tog(this)">Gluten</button><button class="ptag pa" onclick="tog(this)">Eggs</button><button class="ptag pa" onclick="tog(this)">Soy</button><button class="ptag pa" onclick="tog(this)">Shellfish</button><button class="ptag pa" onclick="tog(this)">Fish</button><button class="ptag pa" onclick="tog(this)">Sesame</button><button class="ptag pa" onclick="tog(this)">Mustard</button>
-        </div>
-      </div>
-      <div class="prof-section">
-        <div class="prof-lbl">Health goals</div>
-        <div class="tag-wrap">
-          <button class="ptag pg" onclick="tog(this)">Weight loss</button><button class="ptag pg" onclick="tog(this)">Muscle gain</button><button class="ptag pg" onclick="tog(this)">Heart health</button><button class="ptag pg" onclick="tog(this)">Gut health</button><button class="ptag pg" onclick="tog(this)">Low sugar</button><button class="ptag pg" onclick="tog(this)">High protein</button><button class="ptag pg" onclick="tog(this)">Low sodium</button><button class="ptag pg" onclick="tog(this)">Keto</button><button class="ptag pg" onclick="tog(this)">Energy</button>
-        </div>
-      </div>
-      <div class="prof-section">
-        <div class="prof-lbl">Medical conditions</div>
-        <div class="tag-wrap">
-          <button class="ptag pc" onclick="tog(this)">Diabetes</button><button class="ptag pc" onclick="tog(this)">Hypertension</button><button class="ptag pc" onclick="tog(this)">High cholesterol</button><button class="ptag pc" onclick="tog(this)">PCOD/PCOS</button><button class="ptag pc" onclick="tog(this)">Thyroid</button><button class="ptag pc" onclick="tog(this)">Kidney disease</button><button class="ptag pc" onclick="tog(this)">IBS/IBD</button><button class="ptag pc" onclick="tog(this)">Pregnancy</button><button class="ptag pc" onclick="tog(this)">Anaemia</button>
-        </div>
-      </div>
-      <div class="prof-section" style="margin-bottom:0">
-        <div class="prof-lbl">Diet &amp; extra notes</div>
-        <textarea class="prof-textarea" id="en" placeholder="E.g. vegetarian, lactose sensitive, lowering A1C…"></textarea>
-      </div>
-    </div>
-    <button class="save-prof-btn" onclick="saveProfile()">Save Profile</button>
-    <div class="saved-toast" id="saved-toast">✓ Profile saved</div>
-  </div>
-
-  <!-- NAV -->
-  <div class="nav">
-    <button class="navbtn on" onclick="goTab('scan')"><span class="navicon">🔬</span>Scan</button>
-    <button class="navbtn" onclick="goTab('compare')"><span class="navicon">⚖️</span>Compare</button>
-    <button class="navbtn" onclick="goTab('history')"><span class="navicon">📋</span>History</button>
-    <button class="navbtn" onclick="goTab('profile')"><span class="navicon">👤</span>Profile</button>
-  </div>
-</div>
-
-<script>
-const APP={
-  b64:null,mime:'image/jpeg',
-  cmp:{a:null,b:null,ma:'image/jpeg',mb:'image/jpeg'},
-  profile:JSON.parse(localStorage.getItem('nl_profile')||'{"al":[],"go":[],"co":[],"no":""}'),
-  history:JSON.parse(localStorage.getItem('nl_history')||'[]'),
-  stream:null,facing:'environment'
+const G = {
+  ink: "#0c0e12", ink2: "#2d3142", ink3: "#6b7280", ink4: "#9ca3af",
+  bg: "#f0ede8", surface: "#ffffff", surface2: "#f8f7f4", surface3: "#f2f0ec",
+  border: "#e2dfd8", border2: "#d0ccc3",
+  g0: "#064e2d", g1: "#0a6b3d", g2: "#0f9454", g3: "#13b866", g4: "#16d675",
+  gtint: "#edf7f2",
+  r1: "#c0392b", rtint: "#fef2f2",
+  a1: "#b85c00", atint: "#fff8ed",
+  vtint: "#eef2ff", v0: "#3730a3",
 };
 
-window.addEventListener('load',()=>{restoreProfile();renderHistory();});
+const sColor = c => c === "green" ? G.g1 : c === "red" ? G.r1 : G.a1;
+const vClass = v => v === "high" ? G.r1 : v === "mod" ? G.a1 : G.g1;
+const vLabel = v => v === "high" ? "High ⚠" : v === "mod" ? "Moderate" : "Good ✓";
 
-function setSt(s,m){
-  document.getElementById('kdot').className='kdot '+(s==='ok'?'ok':s==='er'?'er':'ck');
-  document.getElementById('kstxt').textContent=m;
-}
-
-async function apiCall(userContent, maxTok){
-  const r = await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model:'claude-sonnet-4-20250514',
-      max_tokens: maxTok||2000,
-      messages:[{role:'user', content: userContent}]
-    })
+function useLocalStorage(key, init) {
+  const [val, setVal] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; } catch { return init; }
   });
-  const d = await r.json();
-  if(!r.ok || d.error) throw new Error(d.error?.message||`HTTP ${r.status}`);
-  const txt = d.content?.find(b=>b.type==='text')?.text||'';
-  if(!txt) throw new Error('Empty response.');
-  return txt.trim();
+  const set = useCallback(v => {
+    setVal(v);
+    try { localStorage.setItem(key, JSON.stringify(v)); } catch {}
+  }, [key]);
+  return [val, set];
 }
 
-function vmsg(prompt, b64, mime){
-  return [
-    {type:'image', source:{type:'base64', media_type: mime||'image/jpeg', data: b64}},
-    {type:'text', text: prompt}
-  ];
+function ScoreRing({ score, color, size = 88 }) {
+  const r = 38, circ = 2 * Math.PI * r;
+  const dash = (Math.min(score, 100) / 100) * circ;
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} viewBox="0 0 88 88" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="44" cy="44" r={r} fill="none" stroke="#e2dfd8" strokeWidth="7" />
+        <circle cx="44" cy="44" r={r} fill="none" stroke={color} strokeWidth="7"
+          strokeDasharray={`${dash.toFixed(1)} ${circ.toFixed(1)}`} strokeLinecap="round" />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "Georgia, serif", fontSize: 24, fontWeight: 700, color }}>
+        {score}
+      </div>
+    </div>
+  );
 }
 
-async function callWithFallback(content, maxTok){
-  setSt('ck','Analyzing…');
-  try {
-    const result = await apiCall(content, maxTok);
-    setSt('ok','Powered by Claude — ready to scan');
-    return result;
-  } catch(e) {
-    setSt('er', e.message.substring(0,70));
-    throw e;
-  }
+function Card({ children, style = {} }) {
+  return (
+    <div style={{ background: G.surface, border: `1px solid ${G.border}`, borderRadius: 18,
+      padding: "16px 18px", marginBottom: 12, ...style }}>
+      {children}
+    </div>
+  );
 }
 
-function resizeImg(dataUrl,maxPx,q){
-  return new Promise(res=>{
-    const img=new Image();img.onload=()=>{
-      let w=img.width,h=img.height;
-      if(w>maxPx||h>maxPx){const s=maxPx/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
-      const c=document.createElement('canvas');c.width=w;c.height=h;
-      c.getContext('2d').drawImage(img,0,0,w,h);
-      res(c.toDataURL('image/jpeg',q||0.88));
-    };img.src=dataUrl;
-  });
+function CardLabel({ children }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.10em", textTransform: "uppercase", color: G.ink4 }}>
+        {children}
+      </span>
+      <div style={{ flex: 1, height: 1, background: G.border }} />
+    </div>
+  );
 }
 
-async function openCam(){
-  stopCam();
-  try{
-    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:APP.facing,width:{ideal:1280},height:{ideal:720}}});
-    APP.stream=st;document.getElementById('vid').srcObject=st;
-    show('vid');hide('ph');hide('prev');
-    document.getElementById('shr').style.display='flex';
-    hide('use-btn');hide('analyze-btn');hide('scan-loading');clr('scan-result');hide('extracted');
-  }catch(e){alert('Camera unavailable: '+e.message);}
+function Alert({ type, icon, children }) {
+  const bg = type === "danger" ? G.rtint : G.atint;
+  const col = type === "danger" ? G.r1 : G.a1;
+  return (
+    <div style={{ display: "flex", gap: 10, padding: "10px 12px", borderRadius: 10, marginBottom: 7,
+      background: bg, color: col, border: `1px solid ${col}22`, fontSize: 13, lineHeight: 1.5 }}>
+      <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+      <div>{children}</div>
+    </div>
+  );
 }
-function stopCam(){if(APP.stream){APP.stream.getTracks().forEach(t=>t.stop());APP.stream=null;}}
-async function flipCam(){APP.facing=APP.facing==='environment'?'user':'environment';openCam();}
-function snap(){
-  const v=document.getElementById('vid'),c=document.getElementById('cvs');
-  c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
-  const u=c.toDataURL('image/jpeg',.88);
-  APP.b64=u.split(',')[1];APP.mime='image/jpeg';
-  document.getElementById('prev').src=u;show('prev');hide('vid');
-  document.getElementById('shr').style.display='none';show('use-btn');
+
+function Loader() {
+  return (
+    <Card style={{ textAlign: "center", padding: "36px 24px" }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 18 }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: [G.g3, G.g2, G.g1][i],
+            animation: "ldot 0.9s ease-in-out infinite", animationDelay: `${i * 0.16}s` }} />
+        ))}
+      </div>
+      <div style={{ fontFamily: "Georgia, serif", fontSize: 20, fontWeight: 600, color: G.ink, marginBottom: 4 }}>
+        Analyzing label…
+      </div>
+      <div style={{ fontSize: 12.5, color: G.ink4 }}>Claude is reading every ingredient</div>
+      <style>{`@keyframes ldot{0%,100%{transform:scale(.6);opacity:.4}50%{transform:scale(1.2);opacity:1}}`}</style>
+    </Card>
+  );
 }
-function usePic(){stopCam();hide('use-btn');show('analyze-btn');}
-function onFile(e){
-  const f=e.target.files[0];if(!f)return;
-  stopCam();hide('vid');document.getElementById('shr').style.display='none';
-  hide('use-btn');hide('ph');
-  const r=new FileReader();
-  r.onload=async ev=>{
-    const u=await resizeImg(ev.target.result,1280,.9);
-    APP.b64=u.split(',')[1];APP.mime='image/jpeg';
-    document.getElementById('prev').src=u;show('prev');show('analyze-btn');
-    clr('scan-result');hide('extracted');
+
+function IngredientItem({ g, idx }) {
+  const [open, setOpen] = useState(false);
+  const sevIcon = g.severity === "red" ? "🚫" : g.severity === "amber" ? "⚠️" : "✅";
+  const sevBg = g.severity === "red" ? G.rtint : g.severity === "amber" ? G.atint : G.gtint;
+  const tagStyle = g.tag === "Avoid"
+    ? { background: G.rtint, color: G.r1 }
+    : g.tag === "Limit"
+      ? { background: G.atint, color: G.a1 }
+      : { background: G.gtint, color: G.g0 };
+  return (
+    <div style={{ border: `1px solid ${G.border}`, borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 10,
+        padding: "12px 14px", cursor: "pointer", background: G.surface, userSelect: "none" }}>
+        <div style={{ width: 32, height: 32, borderRadius: 9, background: sevBg,
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>
+          {sevIcon}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 13.5, color: G.ink, letterSpacing: "-0.01em" }}>{g.name}</div>
+          <div style={{ fontSize: 11.5, color: G.ink4, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {g.one_liner}
+          </div>
+        </div>
+        <span style={{ fontSize: 9.5, fontWeight: 700, padding: "3px 9px", borderRadius: 20,
+          letterSpacing: "0.04em", textTransform: "uppercase", flexShrink: 0, ...tagStyle }}>
+          {g.tag}
+        </span>
+        <span style={{ fontSize: 10, color: G.ink4, transform: open ? "rotate(180deg)" : "none",
+          transition: "transform 0.25s", marginLeft: 4 }}>▼</span>
+      </div>
+      {open && (
+        <div style={{ padding: "14px", background: G.surface3, borderTop: `1px solid ${G.border}` }}>
+          {[["What is it?", g.what_is_it], ["Why it matters", g.why_it_matters], ["Safe intake", g.how_much_is_safe]].map(([t, v]) => v && (
+            <div key={t} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em",
+                color: G.ink4, marginBottom: 4 }}>{t}</div>
+              <p style={{ fontSize: 13, color: G.ink2, lineHeight: 1.6, margin: 0 }}>{v}</p>
+            </div>
+          ))}
+          {g.who_should_avoid && (
+            <div style={{ display: "flex", gap: 7, background: G.atint, border: `1px solid ${G.a1}22`,
+              borderRadius: 6, padding: "8px 11px", marginTop: 9, fontSize: 12, color: G.a1, lineHeight: 1.55 }}>
+              ⚠️ <span>{g.who_should_avoid}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScanResult({ result, onReset }) {
+  const col = sColor(result.score_color || "amber");
+  return (
+    <div>
+      <Card>
+        <CardLabel>Health Score</CardLabel>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <ScoreRing score={result.overall_score || 0} color={col} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", fontSize: 10, fontWeight: 700,
+              padding: "3px 10px", borderRadius: 20, marginBottom: 6, letterSpacing: "0.04em",
+              textTransform: "uppercase", background: `${col}18`, color: col }}>
+              {result.score_label}
+            </div>
+            <div style={{ fontFamily: "Georgia, serif", fontSize: 18, fontWeight: 600, color: G.ink,
+              letterSpacing: "-0.02em", marginBottom: 2 }}>
+              {result.product_name || "Product"}
+            </div>
+            {result.brand && <div style={{ fontSize: 12, color: G.ink4, fontStyle: "italic", marginBottom: 5 }}>{result.brand}</div>}
+            <div style={{ fontSize: 12.5, color: G.ink3, lineHeight: 1.55 }}>{result.score_reason}</div>
+            {result.serving_size && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10,
+                fontSize: 11.5, color: G.ink3, background: G.surface2, border: `1px solid ${G.border}`,
+                borderRadius: 20, padding: "4px 11px", fontWeight: 500 }}>
+                📏 {result.serving_size}
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {(result.allergen_alerts || []).filter(a => a?.ingredient).length > 0 && (
+        <Card>
+          <CardLabel>Allergy Alerts</CardLabel>
+          {result.allergen_alerts.filter(a => a?.ingredient).map((a, i) => (
+            <Alert key={i} type={a.severity === "danger" ? "danger" : "warn"}
+              icon={a.severity === "danger" ? "⛔" : "⚠️"}>
+              <strong>{a.ingredient}</strong> — {a.reason}
+            </Alert>
+          ))}
+        </Card>
+      )}
+
+      <Card>
+        <CardLabel>Nutritional Breakdown</CardLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {(result.nutrients || []).map((n, i) => {
+            const vc = vClass(n.verdict);
+            const pct = n.verdict === "high" ? 85 : n.verdict === "mod" ? 55 : 30;
+            return (
+              <div key={i} style={{ background: G.surface2, borderRadius: 10, padding: "11px 13px",
+                border: `1px solid ${G.border}` }}>
+                <div style={{ fontSize: 10, color: G.ink4, marginBottom: 3, fontWeight: 700,
+                  letterSpacing: "0.06em", textTransform: "uppercase" }}>{n.name}</div>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: 20, fontWeight: 600,
+                  lineHeight: 1, marginBottom: 4, color: vc }}>{n.value || "—"}</div>
+                <div style={{ height: 3, background: G.border, borderRadius: 2, marginBottom: 5, overflow: "hidden" }}>
+                  <div style={{ height: "100%", borderRadius: 2, width: `${pct}%`, background: vc }} />
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.03em", color: vc }}>{vLabel(n.verdict)}</div>
+                <div style={{ fontSize: 10.5, color: G.ink4, lineHeight: 1.45, marginTop: 3 }}>{n.plain_english}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {(result.ingredient_breakdown || []).filter(g => g?.name).length > 0 && (
+        <Card>
+          <CardLabel>Ingredient Deep-Dive</CardLabel>
+          <p style={{ fontSize: 13, color: G.ink3, marginBottom: 12, lineHeight: 1.6 }}>
+            Tap any ingredient to understand what it is and who should be careful.
+          </p>
+          {result.ingredient_breakdown.filter(g => g?.name).map((g, i) => (
+            <IngredientItem key={i} g={g} idx={i} />
+          ))}
+        </Card>
+      )}
+
+      {(result.nutritionist_insights || []).filter(Boolean).length > 0 && (
+        <Card>
+          <CardLabel>Nutritionist Insights</CardLabel>
+          {result.nutritionist_insights.filter(Boolean).map((x, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, padding: "10px 0",
+              borderBottom: i < result.nutritionist_insights.length - 1 ? `1px solid ${G.border}` : "none",
+              fontSize: 13, color: G.ink2, lineHeight: 1.6 }}>
+              <div style={{ width: 20, height: 20, borderRadius: 6, background: G.gtint,
+                border: `1px solid ${G.g3}33`, display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 700, color: G.g1, flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
+              {x}
+            </div>
+          ))}
+        </Card>
+      )}
+
+      {result.did_you_know && (
+        <div style={{ background: "linear-gradient(135deg,#eef2ff,#f0f5ff)", border: "1px solid #c7d2fe",
+          borderRadius: 18, padding: 18, marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+            color: G.v0, marginBottom: 7, opacity: 0.7 }}>Did you know?</div>
+          <p style={{ fontSize: 13, color: "#312e81", lineHeight: 1.65, margin: 0 }}>{result.did_you_know}</p>
+        </div>
+      )}
+
+      {result.verdict_for_user && (
+        <div style={{ background: "linear-gradient(135deg,#ecfdf5,#d1fae5)", border: "1px solid rgba(16,185,129,.2)",
+          borderRadius: 18, padding: 18, marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+            color: G.g1, marginBottom: 7, opacity: 0.8 }}>Verdict for you</div>
+          <p style={{ fontSize: 13.5, color: "#064e3b", lineHeight: 1.7, margin: 0 }}>{result.verdict_for_user}</p>
+        </div>
+      )}
+
+      {result.better_alternatives && (
+        <Card>
+          <CardLabel>Better Alternatives</CardLabel>
+          <p style={{ fontSize: 13, color: G.ink2, lineHeight: 1.65, margin: 0 }}>{result.better_alternatives}</p>
+        </Card>
+      )}
+
+      <button onClick={onReset} style={{ width: "100%", padding: "11px", border: `1px solid ${G.border}`,
+        borderRadius: 10, background: G.surface, fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+        color: G.ink3, cursor: "pointer", marginTop: 4 }}>
+        ← Scan another product
+      </button>
+    </div>
+  );
+}
+
+function ScanTab({ profile }) {
+  const [phase, setPhase] = useState("idle"); // idle | preview | loading | result | error
+  const [imgData, setImgData] = useState(null);
+  const [result, setResult] = useState(null);
+  const [errMsg, setErrMsg] = useState("");
+  const fileRef = useRef();
+  const videoRef = useRef();
+  const canvasRef = useRef();
+  const streamRef = useRef(null);
+  const facingRef = useRef("environment");
+  const [cameraOn, setCameraOn] = useState(false);
+
+  const stopCam = useCallback(() => {
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    setCameraOn(false);
+  }, []);
+
+  const openCam = useCallback(async () => {
+    stopCam();
+    try {
+      const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingRef.current, width: { ideal: 1280 } } });
+      streamRef.current = st;
+      videoRef.current.srcObject = st;
+      setCameraOn(true);
+      setImgData(null);
+      setPhase("camera");
+    } catch (e) { alert("Camera unavailable: " + e.message); }
+  }, [stopCam]);
+
+  const snap = useCallback(() => {
+    const v = videoRef.current, c = canvasRef.current;
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext("2d").drawImage(v, 0, 0);
+    const url = c.toDataURL("image/jpeg", 0.88);
+    setImgData(url);
+    stopCam();
+    setPhase("preview");
+  }, [stopCam]);
+
+  const onFile = useCallback(e => {
+    const f = e.target.files[0]; if (!f) return;
+    stopCam();
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const resized = await resizeImg(ev.target.result, 1280, 0.9);
+      setImgData(resized);
+      setPhase("preview");
+    };
+    reader.readAsDataURL(f);
+    e.target.value = "";
+  }, [stopCam]);
+
+  const profileContext = () => {
+    const p = profile; let s = "";
+    if (p.al?.length) s += `ALLERGIES — CHECK EVERY INGREDIENT: ${p.al.join(", ")}. `;
+    if (p.go?.length) s += `HEALTH GOALS: ${p.go.join(", ")}. `;
+    if (p.co?.length) s += `MEDICAL CONDITIONS: ${p.co.join(", ")}. `;
+    if (p.no) s += `EXTRA: ${p.no}. `;
+    return s || "General healthy adult, no restrictions.";
   };
-  r.readAsDataURL(f);
-}
 
-function profileContext(){
-  const p=APP.profile;let s='';
-  if(p.al?.length)s+=`ALLERGIES — CHECK EVERY INGREDIENT: ${p.al.join(', ')}. `;
-  if(p.go?.length)s+=`HEALTH GOALS: ${p.go.join(', ')}. `;
-  if(p.co?.length)s+=`MEDICAL CONDITIONS: ${p.co.join(', ')}. `;
-  if(p.no)s+=`EXTRA: ${p.no}. `;
-  return s||'General healthy adult, no restrictions.';
-}
-
-const SCAN_PROMPT=()=>`You are an expert nutritionist analyzing a food product label for a patient.
+  const doScan = useCallback(async () => {
+    if (!imgData) return;
+    setPhase("loading");
+    const b64 = imgData.split(",")[1];
+    const prompt = `You are an expert nutritionist analyzing a food product label.
 PATIENT PROFILE: ${profileContext()}
-Study this image carefully. Read ALL text: product name, brand, ingredients list, nutrition facts table, serving size, allergen info.
-RESPOND WITH ONLY A VALID JSON OBJECT. Start immediately with { end with }. No markdown, no text outside JSON.
-{"product_name":"","brand":"","overall_score":0,"score_label":"Good","score_color":"green","score_reason":"","serving_size":"","extracted_text":"","allergen_alerts":[{"ingredient":"","reason":"","severity":"danger"}],"nutrients":[{"name":"Calories","value":"","verdict":"good","plain_english":""},{"name":"Total Fat","value":"","verdict":"good","plain_english":""},{"name":"Saturated Fat","value":"","verdict":"good","plain_english":""},{"name":"Sugar","value":"","verdict":"good","plain_english":""},{"name":"Sodium","value":"","verdict":"good","plain_english":""},{"name":"Protein","value":"","verdict":"good","plain_english":""},{"name":"Fibre","value":"","verdict":"good","plain_english":""},{"name":"Carbs","value":"","verdict":"good","plain_english":""}],"ingredient_breakdown":[{"name":"","severity":"amber","one_liner":"","what_is_it":"","why_it_matters":"","how_much_is_safe":"","who_should_avoid":"","tag":"Limit"}],"nutritionist_insights":["","",""],"verdict_for_user":"","better_alternatives":"","did_you_know":""}
-Rules: score 0-100; score_color green>=70,amber 40-69,red<40; verdict: good/mod/high; include 4-6 notable ingredients; explain like zero science background; did_you_know = one surprising fact about this product.`;
-
-async function doScan(){
-  if(!APP.b64){alert('Capture or upload an image first.');return;}
-  hide('analyze-btn');show('scan-loading');clr('scan-result');hide('extracted');
-  setSteps(0);document.getElementById('ltxt').textContent='Reading your label…';
-  try{
-    setSteps(1);setTimeout(()=>setSteps(2),4000);setTimeout(()=>setSteps(3),9000);
-    const raw=await callWithFallback(vmsg(SCAN_PROMPT(),APP.b64,APP.mime),2000);
-    setSteps(4);
-    const result=parseJ(raw);
-    if(result.extracted_text){
-      const ex=document.getElementById('extracted');
-      ex.textContent='📄 '+result.extracted_text.substring(0,400);
-      ex.style.display='block';
+Study this image carefully. Read ALL text: product name, brand, ingredients, nutrition facts, serving size, allergens.
+RESPOND WITH ONLY A VALID JSON OBJECT starting with { ending with }. No markdown, no text outside JSON. Keep all string values concise (under 120 chars each).
+{"product_name":"","brand":"","overall_score":0,"score_label":"Good","score_color":"green","score_reason":"","serving_size":"","allergen_alerts":[{"ingredient":"","reason":"","severity":"danger"}],"nutrients":[{"name":"Calories","value":"","verdict":"good","plain_english":""},{"name":"Total Fat","value":"","verdict":"good","plain_english":""},{"name":"Saturated Fat","value":"","verdict":"good","plain_english":""},{"name":"Sugar","value":"","verdict":"good","plain_english":""},{"name":"Sodium","value":"","verdict":"good","plain_english":""},{"name":"Protein","value":"","verdict":"good","plain_english":""},{"name":"Fibre","value":"","verdict":"good","plain_english":""},{"name":"Carbs","value":"","verdict":"good","plain_english":""}],"ingredient_breakdown":[{"name":"","severity":"amber","one_liner":"","what_is_it":"","why_it_matters":"","how_much_is_safe":"","who_should_avoid":"","tag":"Limit"}],"nutritionist_insights":["","",""],"verdict_for_user":"","better_alternatives":"","did_you_know":""}
+Rules: score 0-100; score_color green>=70,amber 40-69,red<40; verdict: good/mod/high; include 3-5 notable ingredients only; keep all text fields brief and plain-language; did_you_know = one short surprising fact.`;
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-opus-4-5",
+          max_tokens: 4000,
+          messages: [{ role: "user", content: [
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
+            { type: "text", text: prompt }
+          ]}]
+        })
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error?.message || `HTTP ${res.status}`);
+      const txt = d.content?.find(b => b.type === "text")?.text || "";
+      const parsed = parseJ(txt);
+      setResult(parsed);
+      setPhase("result");
+    } catch (e) {
+      setErrMsg(e.message);
+      setPhase("error");
     }
-    hide('scan-loading');renderResult(result);
-    const entry={id:Date.now(),name:result.product_name||'Unknown',score:result.overall_score,color:result.score_color,date:new Date().toLocaleDateString('en-IN'),thumb:document.getElementById('prev').src,result};
-    APP.history.unshift(entry);
-    if(APP.history.length>20)APP.history=APP.history.slice(0,20);
-    localStorage.setItem('nl_history',JSON.stringify(APP.history));
-    renderHistory();
-  }catch(e){
-    hide('scan-loading');show('analyze-btn');
-    document.getElementById('scan-result').innerHTML=`<div class="err-card"><strong>Analysis failed</strong>${e.message}<div class="tip-box">💡 Try again — or check your connection.</div></div>`;
-  }
+  }, [imgData, profile]);
+
+  const reset = () => { stopCam(); setPhase("idle"); setImgData(null); setResult(null); };
+
+  return (
+    <div>
+      {phase !== "result" && (
+        <>
+          <div style={{ background: G.ink, borderRadius: 18, overflow: "hidden", marginBottom: 12,
+            position: "relative", minHeight: 200, display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 12px 40px rgba(0,0,0,.15)" }}>
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,#0c1a14,#0f2d1e,#091510)", zIndex: 0 }} />
+            <div style={{ position: "absolute", inset: 0, zIndex: 1,
+              backgroundImage: "linear-gradient(rgba(19,184,102,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(19,184,102,.05) 1px,transparent 1px)",
+              backgroundSize: "28px 28px" }} />
+            {phase === "idle" && (
+              <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column",
+                alignItems: "center", gap: 10, padding: "36px 24px", textAlign: "center" }}>
+                <div style={{ width: 72, height: 72, borderRadius: "50%", border: `2px solid rgba(19,184,102,.3)`,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30 }}>🔬</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,.8)" }}>Scan a nutrition label</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,.3)" }}>Use camera or upload an image below</div>
+              </div>
+            )}
+            {phase === "camera" && (
+              <>
+                <video ref={videoRef} autoPlay playsInline muted
+                  style={{ width: "100%", maxHeight: 260, objectFit: "cover", position: "relative", zIndex: 2, display: "block" }} />
+                <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex",
+                  justifyContent: "center", alignItems: "center", gap: 16, zIndex: 5 }}>
+                  <button onClick={() => { facingRef.current = facingRef.current === "environment" ? "user" : "environment"; openCam(); }}
+                    style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(0,0,0,.55)",
+                      border: "1px solid rgba(255,255,255,.15)", cursor: "pointer", color: "#fff",
+                      fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>🔄</button>
+                  <button onClick={snap}
+                    style={{ width: 62, height: 62, borderRadius: "50%", background: "#fff",
+                      border: "4px solid rgba(255,255,255,.25)", cursor: "pointer", position: "relative",
+                      boxShadow: "0 4px 20px rgba(0,0,0,.5)" }}>
+                    <div style={{ position: "absolute", inset: 5, borderRadius: "50%", background: "#fff" }} />
+                  </button>
+                </div>
+              </>
+            )}
+            {phase === "preview" && imgData && (
+              <img src={imgData} alt="" style={{ width: "100%", maxHeight: 260, objectFit: "cover",
+                display: "block", position: "relative", zIndex: 2 }} />
+            )}
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+          </div>
+
+          <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto" }}>
+            {["📸 Flat & in frame", "💡 Good lighting", "🔤 Full label visible"].map(t => (
+              <div key={t} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: "5px 11px",
+                borderRadius: 20, background: G.surface, border: `1px solid ${G.border}`, color: G.ink3 }}>{t}</div>
+            ))}
+          </div>
+
+          {phase !== "preview" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+              <button onClick={openCam} style={btnStyle()}>📷 Camera</button>
+              <button onClick={() => fileRef.current.click()} style={btnStyle()}>🖼 Upload</button>
+            </div>
+          )}
+          {phase === "preview" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+              <button onClick={openCam} style={btnStyle()}>📷 Retake</button>
+              <button onClick={() => fileRef.current.click()} style={btnStyle()}>🖼 Upload</button>
+              <button onClick={reset} style={btnStyle()}>✕ Clear</button>
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={onFile} />
+
+          {phase === "preview" && (
+            <button onClick={doScan} style={{ width: "100%", padding: 15,
+              background: `linear-gradient(135deg,${G.g0},${G.g1},${G.g2})`,
+              color: "#fff", border: "none", borderRadius: 10,
+              fontFamily: "Georgia, serif", fontSize: 18, fontStyle: "italic", fontWeight: 600,
+              cursor: "pointer", marginBottom: 12, boxShadow: "0 8px 32px rgba(10,107,61,.25)" }}>
+              Analyze this label →
+            </button>
+          )}
+          {phase === "loading" && <Loader />}
+          {phase === "error" && (
+            <div style={{ background: G.rtint, border: `1px solid ${G.r1}33`, borderRadius: 18,
+              padding: "16px 18px", fontSize: 13, color: G.r1, lineHeight: 1.6 }}>
+              <strong style={{ display: "block", marginBottom: 6, fontSize: 14.5 }}>Analysis failed</strong>
+              {errMsg}
+              <div style={{ background: G.surface, border: `1px solid ${G.border}`, borderRadius: 6,
+                padding: 10, fontSize: 12, color: G.ink3, marginTop: 8 }}>
+                💡 Try uploading a clearer photo of the label.
+              </div>
+              <button onClick={reset} style={{ ...btnStyle(), width: "100%", marginTop: 10 }}>← Try again</button>
+            </div>
+          )}
+        </>
+      )}
+      {phase === "result" && result && <ScanResult result={result} onReset={reset} />}
+    </div>
+  );
 }
 
-function setSteps(n){[1,2,3,4].forEach(i=>document.getElementById('s'+i).classList.toggle('dn',i<=n));}
-function sColor(c){return c==='green'?'#0d6e3f':c==='red'?'#b53030':'#9c5800';}
-function vClass(v){return v==='high'?'v-high':v==='mod'?'v-mod':'v-good';}
-function vLabel(v){return v==='high'?'High ⚠':v==='mod'?'Moderate':'Good ✓';}
+function CompareTab({ profile }) {
+  const [slots, setSlots] = useState({ a: null, b: null });
+  const [phase, setPhase] = useState("idle");
+  const [result, setResult] = useState(null);
+  const [errMsg, setErrMsg] = useState("");
+  const fileA = useRef(), fileB = useRef();
 
-function renderResult(r){
-  const col=sColor(r.score_color||'amber');
-  const circ=2*Math.PI*34,dash=((Math.min(r.overall_score||50,100))/100)*circ;
-  const aH=(r.allergen_alerts||[]).filter(a=>a?.ingredient).map(a=>
-    `<div class="alert-item alert-${a.severity==='danger'?'danger':'warn'}"><span class="alert-icon">${a.severity==='danger'?'⛔':'⚠️'}</span><div><strong>${a.ingredient}</strong> — ${a.reason}</div></div>`
-  ).join('');
-  const nH=(r.nutrients||[]).map(n=>
-    `<div class="nutr-cell"><div class="nutr-name">${n.name}</div><div class="nutr-val">${n.value||'—'}</div><div class="nutr-verdict ${vClass(n.verdict)}">${vLabel(n.verdict)}</div><div class="nutr-plain">${n.plain_english||''}</div></div>`
-  ).join('');
-  const iH=(r.ingredient_breakdown||[]).filter(g=>g?.name).map((g,i)=>{
-    const dc=g.severity==='red'?'dot-red':g.severity==='amber'?'dot-amber':'dot-green';
-    const tc=g.tag==='Avoid'?'tag-avoid':g.tag==='Limit'?'tag-limit':'tag-ok';
-    return `<div class="ingr"><div class="ingr-hdr" onclick="tii(${i})"><div class="ingr-dot ${dc}"></div><div class="ingr-info"><div class="ingr-name">${g.name}</div><div class="ingr-sub">${g.one_liner||''}</div></div><span class="ingr-tag ${tc}">${g.tag}</span><span class="ingr-chev" id="ic${i}">▼</span></div><div class="ingr-body" id="ib${i}"><div class="ingr-section"><div class="ingr-section-title">What is it?</div><p>${g.what_is_it||'—'}</p></div><div class="ingr-section"><div class="ingr-section-title">Why it matters</div><p>${g.why_it_matters||'—'}</p></div><div class="ingr-section"><div class="ingr-section-title">Safe intake</div><p>${g.how_much_is_safe||'—'}</p></div>${g.who_should_avoid?`<div class="ingr-who">⚠ Caution: ${g.who_should_avoid}</div>`:''}</div></div>`;
-  }).join('');
-  const insH=(r.nutritionist_insights||[]).filter(Boolean).map(x=>`<div class="insight"><div class="insight-dot"></div>${x}</div>`).join('');
-  document.getElementById('scan-result').innerHTML=`
-    <div class="rcard"><div class="rlbl">Health score</div><div class="score-hero"><div class="score-ring"><svg width="82" height="82" viewBox="0 0 82 82"><circle cx="41" cy="41" r="34" fill="none" stroke="#eae8e0" stroke-width="7"/><circle cx="41" cy="41" r="34" fill="none" stroke="${col}" stroke-width="7" stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" stroke-linecap="round"/></svg><div class="score-ring-num" style="color:${col}">${r.overall_score||'?'}</div></div><div class="score-info"><div class="score-badge" style="background:${col}18;color:${col};border:1px solid ${col}33">${r.score_label||''}</div><h2>${r.product_name||'Product'}${r.brand?`<br><span style="font-size:13px;font-weight:400;font-style:italic;color:var(--ink3)">${r.brand}</span>`:''}</h2><p>${r.score_reason||''}</p></div></div>${r.serving_size?`<div style="margin-top:9px;font-size:11.5px;color:var(--ink3);padding:6px 9px;background:var(--card2);border-radius:var(--r-xs);border:1px solid var(--border)">📏 Serving: <strong>${r.serving_size}</strong></div>`:''}</div>
-    ${aH?`<div class="rcard"><div class="rlbl">🚨 Allergy alerts</div>${aH}</div>`:''}
-    <div class="rcard"><div class="rlbl">Nutritional breakdown</div><div class="nutr-grid">${nH}</div></div>
-    ${iH?`<div class="rcard"><div class="rlbl">Ingredient deep-dive</div><div class="dd-intro">Tap each ingredient to understand what it is, what it does in your body, and who should be careful.</div>${iH}</div>`:''}
-    ${insH?`<div class="rcard"><div class="rlbl">Nutritionist insights</div>${insH}</div>`:''}
-    ${r.did_you_know?`<div class="dyk-card"><div class="dyk-lbl">💡 Did you know?</div><p>${r.did_you_know}</p></div>`:''}
-    ${r.verdict_for_user?`<div class="verdict-card"><div class="verdict-lbl">Verdict for you</div><p>${r.verdict_for_user}</p></div>`:''}
-    ${r.better_alternatives?`<div class="rcard"><div class="rlbl">Better alternatives</div><p style="font-size:12.5px;color:var(--ink2);line-height:1.65">${r.better_alternatives}</p></div>`:''}
-    <button class="reset-btn" onclick="resetScan()">← Scan another product</button>`;
-}
-function tii(i){document.getElementById('ib'+i).classList.toggle('op');document.getElementById('ic'+i).classList.toggle('op');}
-function resetScan(){
-  stopCam();APP.b64=null;
-  ['prev','vid','use-btn','analyze-btn','extracted'].forEach(hide);
-  document.getElementById('shr').style.display='none';
-  document.getElementById('ph').style.display='flex';
-  clr('scan-result');document.getElementById('fi').value='';
-}
-
-function renderHistory(){
-  const el=document.getElementById('hist-content');
-  if(!APP.history.length){el.innerHTML=`<div class="hist-empty"><div class="hist-empty-icon">📋</div><p>Scanned products appear here</p></div>`;return;}
-  el.innerHTML=APP.history.map(h=>{
-    const col=sColor(h.color||'amber');
-    return `<div class="hist-item" onclick="showHist(${h.id})">${h.thumb?`<img class="hist-thumb" src="${h.thumb}" onerror="this.outerHTML='<div class=hist-thumb-ph>🍽</div>'">`:'<div class="hist-thumb-ph">🍽</div>'}<div class="hist-info"><div class="hist-name">${h.name}</div><div class="hist-date">${h.date}</div></div><div class="hist-score" style="color:${col}">${h.score}</div></div>`;
-  }).join('')+`<button class="hist-clear" onclick="clearHist()">Clear history</button>`;
-}
-function showHist(id){
-  const h=APP.history.find(x=>x.id===id);if(!h)return;
-  goTab('scan');
-  setTimeout(()=>{if(h.thumb){document.getElementById('prev').src=h.thumb;show('prev');hide('ph');}hide('analyze-btn');renderResult(h.result);},100);
-}
-function clearHist(){if(!confirm('Clear all scan history?'))return;APP.history=[];localStorage.setItem('nl_history','[]');renderHistory();}
-
-function onCmpFile(slot,e){
-  const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=async ev=>{
-    const u=await resizeImg(ev.target.result,1000,.85);
-    APP.cmp[slot]=u.split(',')[1];APP.cmp['m'+slot]='image/jpeg';
-    const sl=document.getElementById('cs'+slot);sl.classList.add('fl');
-    sl.innerHTML=`<img src="${u}" style="width:100%;max-height:65px;object-fit:cover;border-radius:7px"><div class="cmp-slot-name">Product ${slot.toUpperCase()}</div><div class="cmp-slot-lbl" style="font-size:10px">Tap to change</div>`;
-    sl.onclick=()=>document.getElementById('cf'+slot).click();
-    const ready=!!(APP.cmp.a&&APP.cmp.b);
-    const btn=document.getElementById('cmp-btn');
-    btn.disabled=!ready;btn.style.opacity=ready?'1':'.4';btn.style.cursor=ready?'pointer':'default';
+  const onFile = (slot, e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const resized = await resizeImg(ev.target.result, 1000, 0.85);
+      setSlots(s => ({ ...s, [slot]: resized }));
+    };
+    reader.readAsDataURL(f);
+    e.target.value = "";
   };
-  r.readAsDataURL(f);
-}
 
-const CMP_PROMPT=()=>`You are a nutritionist comparing two food products for a patient.
-PATIENT PROFILE: ${profileContext()}
-Image 1=Product A, Image 2=Product B. Read both labels carefully.
-RESPOND WITH ONLY A VALID JSON OBJECT (start {, end }):
+  const profileContext = () => {
+    const p = profile; let s = "";
+    if (p.al?.length) s += `ALLERGIES: ${p.al.join(", ")}. `;
+    if (p.go?.length) s += `GOALS: ${p.go.join(", ")}. `;
+    if (p.co?.length) s += `CONDITIONS: ${p.co.join(", ")}. `;
+    return s || "General healthy adult.";
+  };
+
+  const doCompare = async () => {
+    setPhase("loading");
+    const prompt = `Compare these two food products nutritionally for: ${profileContext()}
+Image 1=Product A, Image 2=Product B.
+RESPOND WITH ONLY VALID JSON:
 {"product_a":"","product_b":"","winner":"A","winner_reason":"","score_a":0,"score_b":0,"score_color_a":"green","score_color_b":"amber","allergen_alerts":[{"product":"A","ingredient":"","reason":""}],"comparison":[{"nutrient":"Calories","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":true,"winner":"A"},{"nutrient":"Sugar","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":true,"winner":"A"},{"nutrient":"Protein","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":false,"winner":"A"},{"nutrient":"Sodium","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":true,"winner":"A"},{"nutrient":"Sat.Fat","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":true,"winner":"A"},{"nutrient":"Fibre","a_val":"","b_val":"","a_num":0,"b_num":0,"lower_better":false,"winner":"A"}],"key_differences":["","",""],"recommendation":""}`;
-
-async function doCompare(){
-  if(!APP.cmp.a||!APP.cmp.b)return;
-  show('cmp-loading');clr('cmp-result');document.getElementById('cmp-btn').disabled=true;
-  try{
-    const msgs=[
-      {type:'image', source:{type:'base64', media_type: APP.cmp.ma, data: APP.cmp.a}},
-      {type:'image', source:{type:'base64', media_type: APP.cmp.mb, data: APP.cmp.b}},
-      {type:'text', text: CMP_PROMPT()}
-    ];
-    const raw=await callWithFallback(msgs,2000);
-    const result=parseJ(raw);
-    hide('cmp-loading');renderCmp(result);
-  }catch(e){
-    hide('cmp-loading');
-    document.getElementById('cmp-result').innerHTML=`<div class="err-card"><strong>Comparison failed</strong>${e.message}</div>`;
-    document.getElementById('cmp-btn').disabled=false;
-  }
-}
-
-function renderCmp(r){
-  const cA=sColor(r.score_color_a||(r.score_a>=70?'green':r.score_a>=40?'amber':'red'));
-  const cB=sColor(r.score_color_b||(r.score_b>=70?'green':r.score_b>=40?'amber':'red'));
-  const gA=r.score_a>=r.score_b,gB=r.score_b>r.score_a;
-  const aH=(r.allergen_alerts||[]).filter(a=>a?.ingredient).map(a=>
-    `<div class="alert-item alert-danger"><span class="alert-icon">⛔</span><strong>Product ${a.product}</strong>: ${a.ingredient} — ${a.reason}</div>`
-  ).join('');
-  const bH=(r.comparison||[]).map(c=>{
-    const mx=Math.max(c.a_num||0,c.b_num||0,1);
-    const pA=Math.round((c.a_num/mx)*100),pB=Math.round((c.b_num/mx)*100);
-    return `<div class="cmp-bar-section"><div class="cbl"><span>${c.nutrient}</span><span class="cbhint">${c.lower_better?'lower = better':'higher = better'}</span></div><div class="cbrw"><span class="cbl2${c.winner==='A'?' w':''}">A</span><div class="ctrack"><div class="cfill fill-a" style="width:${pA}%"></div></div><span class="cval">${c.a_val}</span></div><div class="cbrw"><span class="cbl2${c.winner==='B'?' w':''}">B</span><div class="ctrack"><div class="cfill fill-b" style="width:${pB}%"></div></div><span class="cval">${c.b_val}</span></div></div>`;
-  }).join('');
-  const dH=(r.key_differences||[]).filter(Boolean).map(d=>`<div class="insight"><div class="insight-dot"></div>${d}</div>`).join('');
-  document.getElementById('cmp-result').innerHTML=`
-    <div class="rcard"><div class="rlbl">Head to head</div><div style="display:grid;grid-template-columns:1fr 32px 1fr;align-items:center;gap:8px;margin-bottom:11px">
-      <div style="padding:11px;border-radius:var(--r-sm);border:${gA?'2px solid var(--g3)':'1px solid var(--border)'};background:${gA?'var(--g-bg)':'var(--card2)'};text-align:center"><div style="font-size:9.5px;color:var(--ink3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Product A</div><div style="font-family:'Playfair Display',serif;font-size:12.5px;margin-bottom:3px;font-style:italic">${r.product_a||'A'}</div><div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:${cA}">${r.score_a}</div>${gA?'<div style="font-size:9.5px;background:var(--g3);color:var(--ink);border-radius:20px;padding:2px 7px;margin-top:3px;display:inline-block;font-weight:700;letter-spacing:.04em">WINNER</div>':''}</div>
-      <div style="text-align:center;font-family:Playfair Display,serif;font-size:13px;color:var(--ink3);font-style:italic">vs</div>
-      <div style="padding:11px;border-radius:var(--r-sm);border:${gB?'2px solid var(--g3)':'1px solid var(--border)'};background:${gB?'var(--g-bg)':'var(--card2)'};text-align:center"><div style="font-size:9.5px;color:var(--ink3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Product B</div><div style="font-family:'Playfair Display',serif;font-size:12.5px;margin-bottom:3px;font-style:italic">${r.product_b||'B'}</div><div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:${cB}">${r.score_b}</div>${gB?'<div style="font-size:9.5px;background:var(--g3);color:var(--ink);border-radius:20px;padding:2px 7px;margin-top:3px;display:inline-block;font-weight:700;letter-spacing:.04em">WINNER</div>':''}</div>
-    </div><p style="font-size:12.5px;color:var(--ink2);line-height:1.6">${r.winner_reason||''}</p></div>
-    ${aH?`<div class="rcard">${aH}</div>`:''}
-    <div class="rcard"><div class="rlbl">Nutrient comparison</div>${bH}</div>
-    ${dH?`<div class="rcard"><div class="rlbl">Key differences</div>${dH}</div>`:''}
-    ${r.recommendation?`<div class="verdict-card"><div class="verdict-lbl">Recommendation for you</div><p>${r.recommendation}</p></div>`:''}
-    <button class="reset-btn" onclick="resetCmp()">← Compare different products</button>`;
-}
-
-function resetCmp(){
-  APP.cmp={a:null,b:null,ma:'image/jpeg',mb:'image/jpeg'};
-  ['a','b'].forEach(s=>{
-    const sl=document.getElementById('cs'+s);sl.classList.remove('fl');
-    sl.innerHTML=`<span style="font-size:26px">${s==='a'?'🅰':'🅱'}</span><div class="cmp-slot-lbl">Add Product ${s.toUpperCase()}</div>`;
-    sl.onclick=()=>document.getElementById('cf'+s).click();
-    document.getElementById('cf'+s).value='';
-  });
-  clr('cmp-result');
-  const btn=document.getElementById('cmp-btn');btn.disabled=true;btn.style.opacity='.4';btn.style.cursor='default';
-}
-
-function restoreProfile(){
-  const p=APP.profile;
-  document.querySelectorAll('.pa').forEach(b=>{if(p.al?.includes(b.textContent.trim()))b.classList.add('on');});
-  document.querySelectorAll('.pg').forEach(b=>{if(p.go?.includes(b.textContent.trim()))b.classList.add('on');});
-  document.querySelectorAll('.pc').forEach(b=>{if(p.co?.includes(b.textContent.trim()))b.classList.add('on');});
-  if(p.no)document.getElementById('en').value=p.no;
-}
-function saveProfile(){
-  APP.profile={
-    al:[...document.querySelectorAll('.pa.on')].map(b=>b.textContent.trim()),
-    go:[...document.querySelectorAll('.pg.on')].map(b=>b.textContent.trim()),
-    co:[...document.querySelectorAll('.pc.on')].map(b=>b.textContent.trim()),
-    no:document.getElementById('en').value
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-opus-4-5",
+          max_tokens: 4000,
+          messages: [{ role: "user", content: [
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: slots.a.split(",")[1] } },
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: slots.b.split(",")[1] } },
+            { type: "text", text: prompt }
+          ]}]
+        })
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error?.message || `HTTP ${res.status}`);
+      const txt = d.content?.find(b => b.type === "text")?.text || "";
+      setResult(parseJ(txt));
+      setPhase("result");
+    } catch (e) {
+      setErrMsg(e.message);
+      setPhase("error");
+    }
   };
-  localStorage.setItem('nl_profile',JSON.stringify(APP.profile));
-  const t=document.getElementById('saved-toast');t.style.display='block';setTimeout(()=>t.style.display='none',2500);
+
+  const reset = () => { setSlots({ a: null, b: null }); setPhase("idle"); setResult(null); };
+  const ready = !!(slots.a && slots.b);
+
+  if (phase === "loading") return <Loader />;
+  if (phase === "result" && result) {
+    const cA = sColor(result.score_color_a || "amber"), cB = sColor(result.score_color_b || "amber");
+    const gA = result.score_a >= result.score_b, gB = result.score_b > result.score_a;
+    return (
+      <div>
+        <Card>
+          <CardLabel>Head to Head</CardLabel>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 36px 1fr", gap: 8, alignItems: "center", marginBottom: 16 }}>
+            {/* Product A */}
+            {[["A", result.product_a, result.score_a, cA, gA], ["B", result.product_b, result.score_b, cB, gB]].reduce((acc, [ltr, name, score, col, won], i) => {
+              const card = (
+                <div key={ltr} style={{ padding: "14px 10px", borderRadius: 12, textAlign: "center",
+                  border: won ? `2px solid ${G.g3}` : `1px solid ${G.border}`,
+                  background: won ? G.gtint : G.surface2, minWidth: 0 }}>
+                  <div style={{ fontSize: 9, color: G.ink4, textTransform: "uppercase", letterSpacing: ".08em",
+                    marginBottom: 5, fontWeight: 700 }}>Product {ltr}</div>
+                  <div style={{ fontSize: 11, color: G.ink3, fontStyle: "italic", marginBottom: 6,
+                    lineHeight: 1.3, wordBreak: "break-word", minHeight: 28 }}>{name || ltr}</div>
+                  <div style={{ fontFamily: "Georgia, serif", fontSize: 32, fontWeight: 700,
+                    color: col, lineHeight: 1, marginBottom: won ? 6 : 0 }}>{score}</div>
+                  {won && (
+                    <div style={{ fontSize: 9, fontWeight: 700, color: G.g1, background: "rgba(19,184,102,.15)",
+                      border: `1px solid ${G.g3}55`, borderRadius: 20, padding: "3px 10px",
+                      display: "inline-block", letterSpacing: ".06em", marginTop: 2 }}>WINNER</div>
+                  )}
+                </div>
+              );
+              if (i === 0) return [card];
+              return [...acc,
+                <div key="vs" style={{ textAlign: "center", fontFamily: "Georgia, serif",
+                  fontSize: 15, fontStyle: "italic", color: G.ink4 }}>vs</div>,
+                card
+              ];
+            }, [])}
+          </div>
+          <p style={{ fontSize: 13, color: G.ink2, lineHeight: 1.65, margin: 0 }}>{result.winner_reason}</p>
+        </Card>
+        <Card>
+          <CardLabel>Nutrient Comparison</CardLabel>
+          {(result.comparison || []).map((c, i) => {
+            const mx = Math.max(c.a_num || 0, c.b_num || 0, 1);
+            const pA = Math.round((c.a_num / mx) * 100), pB = Math.round((c.b_num / mx) * 100);
+            return (
+              <div key={i} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: G.ink2 }}>{c.nutrient}</span>
+                  <span style={{ fontSize: 10.5, color: G.ink4 }}>{c.lower_better ? "lower = better" : "higher = better"}</span>
+                </div>
+                {[["A", pA, c.a_val, c.winner === "A", `linear-gradient(90deg,${G.g2},${G.g4})`],
+                  ["B", pB, c.b_val, c.winner === "B", `linear-gradient(90deg,${G.a1},#f59e0b)`]].map(([l, pct, val, w, grad]) => (
+                  <div key={l} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 11, fontWeight: w ? 800 : 500, width: 14, color: w ? G.g1 : G.ink4 }}>{l}</span>
+                    <div style={{ flex: 1, height: 9, background: G.surface2, borderRadius: 6,
+                      overflow: "hidden", border: `1px solid ${G.border}` }}>
+                      <div style={{ height: "100%", borderRadius: 6, width: `${pct}%`, background: grad,
+                        transition: "width 0.8s cubic-bezier(.34,1.4,.64,1)" }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: G.ink3, minWidth: 46, textAlign: "right",
+                      fontFamily: "monospace" }}>{val}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </Card>
+        {(result.key_differences || []).filter(Boolean).length > 0 && (
+          <Card>
+            <CardLabel>Key Differences</CardLabel>
+            {result.key_differences.filter(Boolean).map((d, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, padding: "10px 0",
+                borderBottom: i < result.key_differences.length - 1 ? `1px solid ${G.border}` : "none",
+                fontSize: 13, color: G.ink2, lineHeight: 1.6 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 6, background: G.gtint,
+                  border: `1px solid ${G.g3}33`, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 700, color: G.g1, flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
+                {d}
+              </div>
+            ))}
+          </Card>
+        )}
+        {result.recommendation && (
+          <div style={{ background: "linear-gradient(135deg,#ecfdf5,#d1fae5)", border: "1px solid rgba(16,185,129,.2)",
+            borderRadius: 18, padding: 18, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+              color: G.g1, marginBottom: 7, opacity: 0.8 }}>Recommendation for you</div>
+            <p style={{ fontSize: 13.5, color: "#064e3b", lineHeight: 1.7, margin: 0 }}>{result.recommendation}</p>
+          </div>
+        )}
+        <button onClick={reset} style={{ width: "100%", padding: 11, border: `1px solid ${G.border}`,
+          borderRadius: 10, background: G.surface, fontFamily: "inherit", fontSize: 13,
+          fontWeight: 600, color: G.ink3, cursor: "pointer", marginTop: 4 }}>← Compare different products</button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        {["a", "b"].map(s => (
+          <div key={s} onClick={() => (s === "a" ? fileA : fileB).current.click()}
+            style={{ border: `1.5px ${slots[s] ? "solid" : "dashed"} ${slots[s] ? G.g2 : G.border2}`,
+              borderRadius: 18, padding: "16px 12px", textAlign: "center", cursor: "pointer",
+              minHeight: 120, display: "flex", flexDirection: "column", alignItems: "center",
+              justifyContent: "center", gap: 6, background: slots[s] ? G.gtint : G.surface,
+              transition: "all 0.2s" }}>
+            {slots[s]
+              ? <><img src={slots[s]} alt="" style={{ width: "100%", maxHeight: 70, objectFit: "cover", borderRadius: 10 }} />
+                  <div style={{ fontSize: 12, fontWeight: 700, color: G.g1 }}>Product {s.toUpperCase()}</div>
+                  <div style={{ fontSize: 10.5, color: G.ink4 }}>Tap to replace</div></>
+              : <><div style={{ width: 36, height: 36, borderRadius: 10, background: G.surface2,
+                  border: `1px solid ${G.border}`, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "Georgia, serif", fontSize: 18, fontWeight: 600, color: G.ink3 }}>{s.toUpperCase()}</div>
+                <div style={{ fontSize: 11.5, color: G.ink4, fontWeight: 500 }}>Add Product {s.toUpperCase()}</div></>}
+          </div>
+        ))}
+      </div>
+      <input ref={fileA} type="file" accept="image/*" style={{ display: "none" }} onChange={e => onFile("a", e)} />
+      <input ref={fileB} type="file" accept="image/*" style={{ display: "none" }} onChange={e => onFile("b", e)} />
+      <button onClick={doCompare} disabled={!ready}
+        style={{ width: "100%", padding: 15, background: ready
+          ? `linear-gradient(135deg,${G.g0},${G.g1},${G.g2})` : G.border,
+          color: ready ? "#fff" : G.ink4, border: "none", borderRadius: 10,
+          fontFamily: "Georgia, serif", fontSize: 18, fontStyle: "italic", fontWeight: 600,
+          cursor: ready ? "pointer" : "default", boxShadow: ready ? "0 8px 32px rgba(10,107,61,.25)" : "none",
+          opacity: ready ? 1 : 0.5 }}>
+        Compare Products →
+      </button>
+      {phase === "error" && (
+        <div style={{ background: G.rtint, border: `1px solid ${G.r1}33`, borderRadius: 18,
+          padding: "14px 18px", fontSize: 13, color: G.r1, marginTop: 12, lineHeight: 1.6 }}>
+          <strong style={{ display: "block", marginBottom: 4 }}>Comparison failed</strong>{errMsg}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function parseJ(raw){
-  raw=raw.replace(/```json|```/g,'').trim();
-  const a=raw.indexOf('{');
-  if(a<0)throw new Error('Model returned no JSON. Response was: '+raw.substring(0,150));
-  let depth=0,end=-1;
-  for(let i=a;i<raw.length;i++){if(raw[i]==='{')depth++;else if(raw[i]==='}'){depth--;if(depth===0){end=i;break;}}}
-  const chunk=end>0?raw.substring(a,end+1):raw.substring(a);
-  try{return JSON.parse(chunk);}
-  catch{
-    let fix=chunk;
-    const op=(fix.match(/\[/g)||[]).length-(fix.match(/\]/g)||[]).length;
-    const ob=(fix.match(/\{/g)||[]).length-(fix.match(/\}/g)||[]).length;
-    if((fix.match(/"/g)||[]).length%2!==0)fix+='"';
-    for(let i=0;i<op;i++)fix+=']';
-    for(let i=0;i<ob;i++)fix+='}';
+function HistoryTab({ history, onView }) {
+  if (!history.length) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "56px 24px", textAlign: "center" }}>
+      <div style={{ width: 72, height: 72, borderRadius: 20, background: G.surface, border: `1px solid ${G.border}`,
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, marginBottom: 14 }}>📋</div>
+      <div style={{ fontSize: 15, fontWeight: 600, color: G.ink3, marginBottom: 4 }}>No scans yet</div>
+      <p style={{ fontSize: 13, color: G.ink4, lineHeight: 1.6 }}>Scan a product label and it will appear here</p>
+    </div>
+  );
+  return (
+    <div>
+      {history.map(h => {
+        const col = sColor(h.color || "amber");
+        return (
+          <div key={h.id} onClick={() => onView(h)}
+            style={{ background: G.surface, border: `1px solid ${G.border}`, borderRadius: 18,
+              padding: 13, marginBottom: 9, cursor: "pointer", display: "flex", alignItems: "center",
+              gap: 12, boxShadow: "0 1px 3px rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.06)" }}>
+            {h.thumb
+              ? <img src={h.thumb} alt="" style={{ width: 52, height: 52, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
+                  onError={e => e.target.style.display = "none"} />
+              : <div style={{ width: 52, height: 52, borderRadius: 12, background: G.surface2,
+                  border: `1px solid ${G.border}`, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 22, flexShrink: 0 }}>🍽</div>}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: G.ink, whiteSpace: "nowrap",
+                overflow: "hidden", textOverflow: "ellipsis" }}>{h.name}</div>
+              <div style={{ fontSize: 11, color: G.ink4, marginTop: 2, fontWeight: 500 }}>{h.date}</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+              <div style={{ fontFamily: "Georgia, serif", fontSize: 24, fontWeight: 700, color: col, lineHeight: 1 }}>{h.score}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
+                color: col, marginTop: 1, opacity: 0.6 }}>/ 100</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProfileTab({ profile, setProfile }) {
+  const [saved, setSaved] = useState(false);
+  const ALLERGIES = ["Peanuts","Tree nuts","Dairy","Gluten","Eggs","Soy","Shellfish","Fish","Sesame","Mustard"];
+  const GOALS = ["Weight loss","Muscle gain","Heart health","Gut health","Low sugar","High protein","Low sodium","Keto","Energy"];
+  const CONDITIONS = ["Diabetes","Hypertension","High cholesterol","PCOD/PCOS","Thyroid","Kidney disease","IBS/IBD","Pregnancy","Anaemia"];
+
+  const toggle = (arr, item) => arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item];
+
+  const TagGroup = ({ items, field, onColor, offColor, onBg, offBg, onBorder }) => (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {items.map(item => {
+        const on = (profile[field] || []).includes(item);
+        return (
+          <button key={item} onClick={() => setProfile(p => ({ ...p, [field]: toggle(p[field] || [], item) }))}
+            style={{ fontSize: 12.5, padding: "5px 13px", borderRadius: 20, cursor: "pointer",
+              fontFamily: "inherit", fontWeight: on ? 700 : 500, letterSpacing: ".01em",
+              background: on ? onBg : G.surface2, color: on ? onColor : G.ink3,
+              border: `1px solid ${on ? onBorder : G.border}`, transition: "all 0.15s" }}>
+            {item}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const save = () => {
+    try { localStorage.setItem("nl_profile", JSON.stringify(profile)); } catch {}
+    setSaved(true); setTimeout(() => setSaved(false), 2500);
+  };
+
+  return (
+    <div>
+      <Card>
+        {[
+          ["Allergies & intolerances", ALLERGIES, "al", G.r0, G.rtint, "rgba(192,57,43,.25)"],
+          ["Health goals", GOALS, "go", G.g0, G.gtint, "rgba(10,107,61,.25)"],
+          ["Medical conditions", CONDITIONS, "co", G.a0, G.atint, "rgba(184,92,0,.25)"],
+        ].map(([label, items, field, onColor, onBg, onBorder]) => (
+          <div key={field} style={{ marginBottom: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: G.ink4 }}>{label}</span>
+              <div style={{ flex: 1, height: 1, background: G.border }} />
+            </div>
+            <TagGroup items={items} field={field} onColor={onColor} offColor={G.ink3} onBg={onBg} offBg={G.surface2} onBorder={onBorder} />
+          </div>
+        ))}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: G.ink4 }}>Diet & notes</span>
+            <div style={{ flex: 1, height: 1, background: G.border }} />
+          </div>
+          <textarea value={profile.no || ""} onChange={e => setProfile(p => ({ ...p, no: e.target.value }))}
+            placeholder="E.g. vegetarian, lactose sensitive, lowering A1C…"
+            style={{ width: "100%", border: `1px solid ${G.border}`, borderRadius: 10, padding: "11px 13px",
+              fontFamily: "inherit", fontSize: 13, background: G.surface2, color: G.ink,
+              resize: "vertical", minHeight: 80, outline: "none", lineHeight: 1.55 }} />
+        </div>
+      </Card>
+      <button onClick={save} style={{ width: "100%", padding: 15,
+        background: `linear-gradient(135deg,${G.g0},${G.g1},${G.g2})`, color: "#fff", border: "none",
+        borderRadius: 10, fontFamily: "Georgia, serif", fontSize: 18, fontStyle: "italic", fontWeight: 600,
+        cursor: "pointer", boxShadow: "0 8px 32px rgba(10,107,61,.25)" }}>
+        Save my profile
+      </button>
+      {saved && <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 700, color: G.g1, padding: 9 }}>✓ Profile saved</div>}
+    </div>
+  );
+}
+
+// ── helpers ──────────────────────────────────────────────
+function btnStyle() {
+  return { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 10px",
+    borderRadius: 10, border: `1px solid ${G.border}`, background: G.surface, cursor: "pointer",
+    fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: G.ink2 };
+}
+
+function resizeImg(dataUrl, maxPx, q) {
+  return new Promise(res => {
+    const img = new Image(); img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxPx || h > maxPx) { const s = maxPx / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      res(c.toDataURL("image/jpeg", q || 0.88));
+    }; img.src = dataUrl;
+  });
+}
+
+function parseJ(raw) {
+  raw = raw.replace(/```json|```/g, "").trim();
+  const a = raw.indexOf("{"); if (a < 0) throw new Error("No JSON in response");
+  let depth = 0, end = -1;
+  for (let i = a; i < raw.length; i++) { if (raw[i] === "{") depth++; else if (raw[i] === "}") { depth--; if (depth === 0) { end = i; break; } } }
+  const chunk = end > 0 ? raw.substring(a, end + 1) : raw.substring(a);
+  try { return JSON.parse(chunk); } catch {
+    let fix = chunk;
+    const op = (fix.match(/\[/g) || []).length - (fix.match(/\]/g) || []).length;
+    const ob = (fix.match(/\{/g) || []).length - (fix.match(/\}/g) || []).length;
+    if ((fix.match(/"/g) || []).length % 2 !== 0) fix += '"';
+    for (let i = 0; i < op; i++) fix += "]";
+    for (let i = 0; i < ob; i++) fix += "}";
     return JSON.parse(fix);
   }
 }
-function goTab(t){
-  ['scan','compare','history','profile'].forEach((id,i)=>{
-    document.getElementById('tab-'+id).classList.toggle('on',id===t);
-    document.querySelectorAll('.navbtn')[i].classList.toggle('on',id===t);
-  });
+
+// ── ROOT ──────────────────────────────────────────────────
+const TABS = ["scan", "compare", "history", "profile"];
+const TAB_ICONS = ["🔬", "⚖️", "📋", "👤"];
+const TAB_LABELS = ["Scan", "Compare", "History", "Profile"];
+
+export default function App() {
+  const [tab, setTab] = useState("scan");
+  const [profile, setProfile] = useLocalStorage("nl_profile", { al: [], go: [], co: [], no: "" });
+  const [history, setHistory] = useLocalStorage("nl_history", []);
+  const [histResult, setHistResult] = useState(null);
+
+  const addHistory = useCallback(entry => {
+    setHistory(h => [entry, ...h].slice(0, 20));
+  }, [setHistory]);
+
+  const viewHist = useCallback(h => {
+    setHistResult(h);
+    setTab("scan");
+  }, []);
+
+  return (
+    <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", display: "flex",
+      flexDirection: "column", background: "#f0ede8", fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+      WebkitFontSmoothing: "antialiased" }}>
+
+      {/* HEADER */}
+      <div style={{ background: G.ink, padding: "18px 20px 14px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -60, right: -40, width: 200, height: 200, borderRadius: "50%",
+          background: "radial-gradient(circle,rgba(19,184,102,.18) 0%,transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center",
+                justifyContent: "center", fontSize: 18, background: `linear-gradient(135deg,${G.g1},${G.g3})`,
+                boxShadow: "0 4px 12px rgba(19,184,102,.4)" }}>🔬</div>
+              <div style={{ fontFamily: "Georgia, serif", fontSize: 22, fontWeight: 600, color: "#fff", letterSpacing: "-0.4px" }}>
+                Nutri<span style={{ color: G.g4, fontStyle: "italic" }}>Lens</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.07)",
+              border: "1px solid rgba(255,255,255,.1)", borderRadius: 20, padding: "5px 11px" }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: G.g4,
+                boxShadow: `0 0 6px ${G.g4}`, animation: "pulse 2s infinite" }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,.7)", letterSpacing: ".04em" }}>AI Powered</span>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.05)",
+            border: "1px solid rgba(255,255,255,.08)", borderRadius: 10, padding: "9px 12px" }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: G.g4,
+              boxShadow: `0 0 8px rgba(22,214,117,.4)`, flexShrink: 0 }} />
+            <span style={{ fontSize: 11.5, color: "rgba(255,255,255,.5)", fontWeight: 500 }}>
+              Powered by Claude — ready to scan
+            </span>
+          </div>
+        </div>
+        <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}`}</style>
+      </div>
+
+      {/* CONTENT */}
+      <div style={{ flex: 1, padding: "18px 16px 90px", overflowY: "auto" }}>
+        {tab === "scan" && !histResult && <ScanTab profile={profile} onAddHistory={addHistory} />}
+        {tab === "scan" && histResult && (
+          <div>
+            <ScanResult result={histResult.result} onReset={() => setHistResult(null)} />
+          </div>
+        )}
+        {tab === "compare" && <CompareTab profile={profile} />}
+        {tab === "history" && <HistoryTab history={history} onView={viewHist} />}
+        {tab === "profile" && <ProfileTab profile={profile} setProfile={setProfile} />}
+      </div>
+
+      {/* NAV */}
+      <div style={{ display: "flex", background: G.surface, borderTop: `1px solid ${G.border}`,
+        position: "sticky", bottom: 0, zIndex: 30 }}>
+        {TABS.map((t, i) => (
+          <button key={t} onClick={() => { setTab(t); if (t === "scan") setHistResult(null); }}
+            style={{ flex: 1, padding: "10px 4px 8px", border: "none", background: "none", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 10, fontWeight: 600, color: tab === t ? G.g1 : G.ink4,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+              position: "relative", letterSpacing: ".03em", textTransform: "uppercase" }}>
+            {tab === t && <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
+              width: 32, height: 2, background: `linear-gradient(90deg,${G.g2},${G.g4})`, borderRadius: "0 0 3px 3px" }} />}
+            <div style={{ width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 7, background: tab === t ? G.gtint : "transparent", fontSize: 16 }}>
+              {TAB_ICONS[i]}
+            </div>
+            {TAB_LABELS[i]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
-function tog(el){el.classList.toggle('on');}
-function show(id){const e=document.getElementById(id);if(e)e.style.display='block';}
-function hide(id){const e=document.getElementById(id);if(e)e.style.display='none';}
-function clr(id){document.getElementById(id).innerHTML='';}
-</script>
-</body>
-</html>
